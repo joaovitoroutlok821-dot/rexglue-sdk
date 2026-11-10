@@ -8,6 +8,7 @@
 
 #include <rex/thread/fiber.h>
 #include <cassert>
+#include <exception>
 #include <new>
 
 namespace rex::thread {
