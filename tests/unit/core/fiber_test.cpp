@@ -19,14 +19,16 @@ struct FiberTestState {
   Fiber* main = nullptr;
   Fiber* self = nullptr;
   int count = 0;
+  bool current_before_switch = false;
+  bool current_after_resume = false;
 };
 
 static void counting_fiber(void* raw_state) {
   auto* state = static_cast<FiberTestState*>(raw_state);
-  REQUIRE(Fiber::Current() == state->self);
+  state->current_before_switch = Fiber::Current() == state->self;
   ++state->count;
   Fiber::SwitchTo(state->main);
-  REQUIRE(Fiber::Current() == state->self);
+  state->current_after_resume = Fiber::Current() == state->self;
   ++state->count;
   Fiber::SwitchTo(state->main);
 }
@@ -45,10 +47,12 @@ TEST_CASE("rex::thread::Fiber - basic context switch and current fiber", "[fiber
   Fiber::SwitchTo(fiber);
   REQUIRE(Fiber::Current() == main);
   REQUIRE(state.count == 1);
+  REQUIRE(state.current_before_switch);
 
   Fiber::SwitchTo(fiber);
   REQUIRE(Fiber::Current() == main);
   REQUIRE(state.count == 2);
+  REQUIRE(state.current_after_resume);
 
   fiber->Destroy();
   main->Destroy();
@@ -71,20 +75,24 @@ TEST_CASE("rex::thread::Fiber - multiple suspended fibers", "[fiber]") {
   Fiber::SwitchTo(first);
   REQUIRE(Fiber::Current() == main);
   REQUIRE(first_state.count == 1);
+  REQUIRE(first_state.current_before_switch);
   REQUIRE(second_state.count == 0);
 
   Fiber::SwitchTo(second);
   REQUIRE(Fiber::Current() == main);
   REQUIRE(first_state.count == 1);
   REQUIRE(second_state.count == 1);
+  REQUIRE(second_state.current_before_switch);
 
   Fiber::SwitchTo(first);
   REQUIRE(Fiber::Current() == main);
   REQUIRE(first_state.count == 2);
+  REQUIRE(first_state.current_after_resume);
 
   Fiber::SwitchTo(second);
   REQUIRE(Fiber::Current() == main);
   REQUIRE(second_state.count == 2);
+  REQUIRE(second_state.current_after_resume);
 
   // Both fibers are suspended on their own stacks and can be destroyed
   // while the main/thread fiber is current.
