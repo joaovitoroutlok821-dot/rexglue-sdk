@@ -1,0 +1,37 @@
+name: Android ARM64 Fiber Backend Compile Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - android-arm64-fiber-experiment
+    paths:
+      - 'include/rex/thread/fiber.h'
+      - 'src/core/fiber_android_arm64.cpp'
+      - 'src/core/fiber_android_arm64.S'
+      - '.github/workflows/android-arm64-fiber-check.yml'
+
+jobs:
+  compile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: android-actions/setup-android@v3
+      - name: Install Android NDK
+        run: sdkmanager "ndk;27.2.12479018"
+      - name: Compile Android ARM64 fiber sources
+        shell: bash
+        run: |
+          set -euxo pipefail
+          NDK="$ANDROID_HOME/ndk/27.2.12479018"
+          TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          CXX="$TOOLCHAIN/aarch64-linux-android24-clang++"
+          CC="$TOOLCHAIN/aarch64-linux-android24-clang"
+          mkdir -p build-fiber-check
+          "$CXX" -std=c++23 -Wall -Wextra -Werror -fPIC -Iinclude \
+            -c src/core/fiber_android_arm64.cpp \
+            -o build-fiber-check/fiber_android_arm64.o
+          "$CC" -fPIC -Iinclude -c src/core/fiber_android_arm64.S \
+            -o build-fiber-check/fiber_android_arm64_asm.o
+          llvm-readelf -h build-fiber-check/fiber_android_arm64.o
+          llvm-readelf -h build-fiber-check/fiber_android_arm64_asm.o
