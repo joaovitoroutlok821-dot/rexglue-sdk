@@ -14,32 +14,82 @@
 
 using rex::thread::Fiber;
 
-// Globals - fiber entry functions cannot capture closures.
-static Fiber* s_main = nullptr;
-static int s_count = 0;
+// Fiber entry functions cannot capture closures.
+struct FiberTestState {
+  Fiber* main = nullptr;
+  Fiber* self = nullptr;
+  int count = 0;
+};
 
-static void counting_fiber(void*) {
-  ++s_count;  // first resume
-  Fiber::SwitchTo(s_main);
-  ++s_count;  // second resume
-  Fiber::SwitchTo(s_main);
+static void counting_fiber(void* raw_state) {
+  auto* state = static_cast<FiberTestState*>(raw_state);
+  REQUIRE(Fiber::Current() == state->self);
+  ++state->count;
+  Fiber::SwitchTo(state->main);
+  REQUIRE(Fiber::Current() == state->self);
+  ++state->count;
+  Fiber::SwitchTo(state->main);
 }
 
-TEST_CASE("rex::thread::Fiber - basic context switch", "[fiber]") {
-  s_count = 0;
-  s_main = Fiber::ConvertCurrentThread();
-  auto* f = Fiber::Create(256 * 1024, counting_fiber, nullptr);
+TEST_CASE("rex::thread::Fiber - basic context switch and current fiber", "[fiber]") {
+  auto* main = Fiber::ConvertCurrentThread();
+  REQUIRE(main != nullptr);
+  REQUIRE(Fiber::Current() == main);
 
-  REQUIRE(s_count == 0);
-  Fiber::SwitchTo(f);
-  REQUIRE(s_count == 1);  // fiber ran, switched back
-  Fiber::SwitchTo(f);
-  REQUIRE(s_count == 2);  // fiber resumed, ran again, switched back
+  FiberTestState state{main};
+  auto* fiber = Fiber::Create(256 * 1024, counting_fiber, &state);
+  REQUIRE(fiber != nullptr);
+  state.self = fiber;
 
-  // NOTE: Cleanup is not exception-safe. If a REQUIRE above fires, Catch2
-  // throws and these Destroy() calls are skipped, leaking the host fiber
-  // handles. Acceptable for a test-only scenario; fix if spurious failures occur.
-  f->Destroy();
-  s_main->Destroy();
-  s_main = nullptr;
+  REQUIRE(state.count == 0);
+  Fiber::SwitchTo(fiber);
+  REQUIRE(Fiber::Current() == main);
+  REQUIRE(state.count == 1);
+
+  Fiber::SwitchTo(fiber);
+  REQUIRE(Fiber::Current() == main);
+  REQUIRE(state.count == 2);
+
+  fiber->Destroy();
+  main->Destroy();
+  REQUIRE(Fiber::Current() == nullptr);
+}
+
+TEST_CASE("rex::thread::Fiber - multiple suspended fibers", "[fiber]") {
+  auto* main = Fiber::ConvertCurrentThread();
+  REQUIRE(main != nullptr);
+
+  FiberTestState first_state{main};
+  FiberTestState second_state{main};
+  auto* first = Fiber::Create(256 * 1024, counting_fiber, &first_state);
+  auto* second = Fiber::Create(256 * 1024, counting_fiber, &second_state);
+  REQUIRE(first != nullptr);
+  REQUIRE(second != nullptr);
+  first_state.self = first;
+  second_state.self = second;
+
+  Fiber::SwitchTo(first);
+  REQUIRE(Fiber::Current() == main);
+  REQUIRE(first_state.count == 1);
+  REQUIRE(second_state.count == 0);
+
+  Fiber::SwitchTo(second);
+  REQUIRE(Fiber::Current() == main);
+  REQUIRE(first_state.count == 1);
+  REQUIRE(second_state.count == 1);
+
+  Fiber::SwitchTo(first);
+  REQUIRE(Fiber::Current() == main);
+  REQUIRE(first_state.count == 2);
+
+  Fiber::SwitchTo(second);
+  REQUIRE(Fiber::Current() == main);
+  REQUIRE(second_state.count == 2);
+
+  // Both fibers are suspended on their own stacks and can be destroyed
+  // while the main/thread fiber is current.
+  first->Destroy();
+  second->Destroy();
+  main->Destroy();
+  REQUIRE(Fiber::Current() == nullptr);
 }
