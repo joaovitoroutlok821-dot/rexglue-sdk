@@ -9,6 +9,8 @@ on:
       - 'include/rex/thread/fiber.h'
       - 'src/core/fiber_android_arm64.cpp'
       - 'src/core/fiber_android_arm64.S'
+      - 'src/core/CMakeLists.txt'
+      - 'CMakeLists.txt'
       - '.github/workflows/android-arm64-fiber-check.yml'
 
 jobs:
