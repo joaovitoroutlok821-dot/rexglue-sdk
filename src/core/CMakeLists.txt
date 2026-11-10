@@ -118,7 +118,13 @@ target_include_directories(rexcore PRIVATE
     ${PROJECT_SOURCE_DIR}/thirdparty/cli11/include
 )
 
-if(APPLE)
+if(ANDROID)
+    # Android's Bionic provides pthread functionality through libc; do not
+    # link the Linux-only librt. Keep libdl explicit when the NDK exposes it.
+    if(CMAKE_DL_LIBS)
+        target_link_libraries(rexcore PRIVATE ${CMAKE_DL_LIBS})
+    endif()
+elseif(APPLE)
     target_link_libraries(rexcore PRIVATE pthread)
 elseif(UNIX)
     target_link_libraries(rexcore PRIVATE pthread rt dl)
