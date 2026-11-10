@@ -23,9 +23,6 @@ jobs:
         run: |
           set -euxo pipefail
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          # sdkmanager can return non-zero after its interactive license prompt
-          # even when all available SDK licenses were accepted. Do not let that
-          # prevent the actual NDK installation step from reporting its result.
           yes | "$SDKMANAGER" --licenses || true
           "$SDKMANAGER" --install "ndk;27.2.12479018"
       - name: Compile Android ARM64 fiber sources
@@ -36,11 +33,12 @@ jobs:
           TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
           CXX="$TOOLCHAIN/aarch64-linux-android24-clang++"
           CC="$TOOLCHAIN/aarch64-linux-android24-clang"
+          READELF="$TOOLCHAIN/llvm-readelf"
           mkdir -p build-fiber-check
           "$CXX" -std=c++23 -Wall -Wextra -Werror -fPIC -Iinclude \
             -c src/core/fiber_android_arm64.cpp \
             -o build-fiber-check/fiber_android_arm64.o
           "$CC" -fPIC -Iinclude -c src/core/fiber_android_arm64.S \
             -o build-fiber-check/fiber_android_arm64_asm.o
-          llvm-readelf -h build-fiber-check/fiber_android_arm64.o
-          llvm-readelf -h build-fiber-check/fiber_android_arm64_asm.o
+          "$READELF" -h build-fiber-check/fiber_android_arm64.o
+          "$READELF" -h build-fiber-check/fiber_android_arm64_asm.o
