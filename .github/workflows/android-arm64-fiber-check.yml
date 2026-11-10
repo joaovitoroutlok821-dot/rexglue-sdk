@@ -23,8 +23,11 @@ jobs:
         run: |
           set -euxo pipefail
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses
-          "$SDKMANAGER" "ndk;27.2.12479018"
+          # sdkmanager can return non-zero after its interactive license prompt
+          # even when all available SDK licenses were accepted. Do not let that
+          # prevent the actual NDK installation step from reporting its result.
+          yes | "$SDKMANAGER" --licenses || true
+          "$SDKMANAGER" --install "ndk;27.2.12479018"
       - name: Compile Android ARM64 fiber sources
         shell: bash
         run: |
