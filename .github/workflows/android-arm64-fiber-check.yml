@@ -18,9 +18,13 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: android-actions/setup-android@v3
       - name: Install Android NDK
-        run: sdkmanager "ndk;27.2.12479018"
+        shell: bash
+        run: |
+          set -euxo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses
+          "$SDKMANAGER" "ndk;27.2.12479018"
       - name: Compile Android ARM64 fiber sources
         shell: bash
         run: |
