@@ -81,8 +81,7 @@ void Fiber::Destroy() {
       tls_current_ = nullptr;
     }
   } else {
-    assert(this != tls_current_ &&
-           "Destroy called on the currently running fiber");
+    assert(this != tls_current_ && "Destroy called on the currently running fiber");
   }
   delete this;
 }
