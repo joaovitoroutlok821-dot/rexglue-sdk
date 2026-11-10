@@ -21,6 +21,9 @@ jobs:
           python -m pip install -r scripts/requirements-dev.txt
           clang-format --version
 
+      - name: Print canonical Android ARM64 fiber formatting
+        run: clang-format src/core/fiber_android_arm64.cpp
+
       - name: Check C/C++ formatting
         run: |
           find include src tests \
