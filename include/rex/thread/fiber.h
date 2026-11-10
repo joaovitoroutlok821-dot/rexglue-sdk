@@ -14,7 +14,7 @@
 #include <rex/platform.h>
 #include <cstddef>
 
-#if REX_PLATFORM_LINUX || REX_PLATFORM_MAC
+#if (REX_PLATFORM_LINUX && !REX_PLATFORM_ANDROID) || REX_PLATFORM_MAC
 #if REX_PLATFORM_MAC && !defined(_XOPEN_SOURCE)
 #define _XOPEN_SOURCE 700
 #endif
