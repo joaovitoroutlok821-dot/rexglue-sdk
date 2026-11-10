@@ -14,8 +14,7 @@
 namespace rex::thread {
 
 extern "C" void rex_fiber_android_arm64_switch(
-                                               FiberAndroidArm64Context* from,
-                                               const FiberAndroidArm64Context* to);
+    FiberAndroidArm64Context* from, const FiberAndroidArm64Context* to);
 
 thread_local Fiber* Fiber::tls_current_ = nullptr;
 
@@ -49,12 +48,10 @@ Fiber* Fiber::Create(size_t stack_size, void (*entry)(void*), void* arg) {
   }
   fiber->entry_ = entry;
   fiber->arg_ = arg;
-  uintptr_t top =
-      reinterpret_cast<uintptr_t>(fiber->stack_.data() + fiber->stack_.size());
+  uintptr_t top = reinterpret_cast<uintptr_t>(fiber->stack_.data() + fiber->stack_.size());
   top &= ~static_cast<uintptr_t>(0xF);
   fiber->context_.sp = top;
-  fiber->context_.x19_x30[11] =
-      reinterpret_cast<uintptr_t>(&Fiber::Trampoline);
+  fiber->context_.x19_x30[11] = reinterpret_cast<uintptr_t>(&Fiber::Trampoline);
   return fiber;
 }
 
@@ -85,7 +82,7 @@ void Fiber::Destroy() {
     }
   } else {
     assert(this != tls_current_ &&
-                                "Destroy called on the currently running fiber");
+           "Destroy called on the currently running fiber");
   }
   delete this;
 }
