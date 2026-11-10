@@ -13,9 +13,8 @@
 
 namespace rex::thread {
 
-extern "C" void rex_fiber_android_arm64_switch(
-    FiberAndroidArm64Context* from,
-    const FiberAndroidArm64Context* to);
+extern "C" void rex_fiber_android_arm64_switch(FiberAndroidArm64Context* from,
+                                               const FiberAndroidArm64Context* to);
 
 thread_local Fiber* Fiber::tls_current_ = nullptr;
 
