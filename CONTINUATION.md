@@ -108,3 +108,11 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - A configuração completa do SDK falhou em `CMakeLists.txt:101`: o preset mostrava `CMAKE_ANDROID_ARCH_ABI=arm64-v8a`, mas o toolchain NDK efetivamente selecionou `armeabi-v7a`.
 - Correção enviada no commit `8d72c63ea0cb4e0d7b06b51ad8fe8127669524e0`: o preset agora define a variável documentada pelo NDK `ANDROID_ABI=arm64-v8a` em vez de tentar definir `CMAKE_ANDROID_ARCH_ABI` diretamente.
 - Próximo passo: validar a nova execução. O build integral ainda não está aprovado; a etapa de compilação nem chegou a iniciar porque a configuração CMake foi interrompida pela ABI incorreta.
+
+## Atualização — ABI ARM64 validada e habilitação de ASM (2026-11-11)
+- Execução: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/42939762979
+- A alteração do preset para `ANDROID_ABI=arm64-v8a` resolveu a seleção incorreta de ABI. O CMake avançou e exibiu `Configuring done`.
+- Lint & Format Check passou: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/42939763030
+- A geração falhou depois da configuração porque o projeto não havia habilitado a linguagem ASM: variável interna ausente `CMAKE_ASM_COMPILE_OBJECT`.
+- Correção enviada no commit `af580822002d85fde899c9c683a66aa41ba8194a`: ASM foi incluída nas linguagens do projeto para builds normais e Apple.
+- Próximo passo: verificar a nova execução e corrigir o próximo erro real, se houver. A compilação integral ainda não foi concluída.
