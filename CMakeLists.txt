@@ -94,9 +94,15 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     endif()
 endif()
 
-# Enforce x64 architecture
-if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
-    message(FATAL_ERROR "ReXGlue only supports 64‑bit architectures (x86_64 or ARM64)")
+# Enforce 64-bit architecture. Android's NDK toolchain selects the ABI
+# before compiler ABI probing is complete, so validate its explicit ABI here.
+if(ANDROID)
+    if(NOT CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a")
+        message(FATAL_ERROR
+            "ReXGlue Android builds require arm64-v8a (found ${CMAKE_ANDROID_ARCH_ABI})")
+    endif()
+elseif(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+    message(FATAL_ERROR "ReXGlue only supports 64-bit architectures (x86_64 or ARM64)")
 endif()
 
 # Set C++23 standard
