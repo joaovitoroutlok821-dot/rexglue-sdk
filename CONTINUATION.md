@@ -162,3 +162,11 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - This detects API 26+ by symbol availability and preserves the existing `/dev/ashmem` fallback when the symbol is unavailable, without requiring a separate Android API-level helper.
 - Source commit: `7fd7b72fb0a2d6ce27924cbd031aeb77f48c5a73`.
 - Validation: pending the next Android ARM64 build and lint workflow runs.
+
+
+## 2026-11-11 — Detecção de pthread_getname_np no Android
+
+- A compilação Android ARM64 avançou até a tarefa 506/790 e falhou em `src/core/threading_posix.cpp` porque o include `rex/main_android.h` não existe e o código dependia de `rex::GetAndroidApiLevel()`.
+- Removido o include inexistente e substituída a consulta de nível de API pela resolução dinâmica de `pthread_getname_np` via `dlopen("libc.so")` e `dlsym`, preservando o comportamento opcional em versões sem o símbolo.
+- Alteração registrada no commit `776ce4d3a579864a168517732d988c009137a326`.
+- Próximo passo: validar lint e executar novamente a compilação Android ARM64; ainda não há artefato SDK confirmado.
