@@ -101,3 +101,10 @@ A assinatura da implementação Android corresponde ao contrato observado.
 
 ## Ponto exato de retomada
 O último problema conhecido de CI foi formatação em `surface_android.cpp), corrigida no commit `c4a19d48c533bb443e4c4fd43b8228146625360d`. Próximo passo: verificar o novo lint e então validar macros Vulkan e preparar o workflow de build Android completo.
+
+## Atualização — correção da ABI do NDK (2026-11-11)
+- Execução Android ARM64: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/42933899469
+- Lint & Format Check e Android ARM64 Fiber Backend Compile Check passaram no commit `91db57434320f7c06422868ba72477d5502a1e8f`.
+- A configuração completa do SDK falhou em `CMakeLists.txt:101`: o preset mostrava `CMAKE_ANDROID_ARCH_ABI=arm64-v8a`, mas o toolchain NDK efetivamente selecionou `armeabi-v7a`.
+- Correção enviada no commit `8d72c63ea0cb4e0d7b06b51ad8fe8127669524e0`: o preset agora define a variável documentada pelo NDK `ANDROID_ABI=arm64-v8a` em vez de tentar definir `CMAKE_ANDROID_ARCH_ABI` diretamente.
+- Próximo passo: validar a nova execução. O build integral ainda não está aprovado; a etapa de compilação nem chegou a iniciar porque a configuração CMake foi interrompida pela ABI incorreta.
