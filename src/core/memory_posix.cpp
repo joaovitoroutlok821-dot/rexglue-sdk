@@ -91,14 +91,13 @@ static void* libandroid_;
 static int (*android_ASharedMemory_create_)(const char* name, size_t size);
 
 void AndroidInitialize() {
-  if (rex::GetAndroidApiLevel() >= 26) {
-    libandroid_ = dlopen("libandroid.so", RTLD_NOW);
-    assert_not_null(libandroid_);
-    if (libandroid_) {
-      android_ASharedMemory_create_ = reinterpret_cast<decltype(android_ASharedMemory_create_)>(
-          dlsym(libandroid_, "ASharedMemory_create"));
-      assert_not_null(android_ASharedMemory_create_);
-    }
+  // libandroid.so is available on supported Android releases, while
+  // ASharedMemory_create is only exported on API 26+. Resolve the symbol
+  // directly and keep the ashmem fallback when it is unavailable.
+  libandroid_ = dlopen("libandroid.so", RTLD_NOW);
+  if (libandroid_) {
+    android_ASharedMemory_create_ = reinterpret_cast<decltype(android_ASharedMemory_create_)>(
+        dlsym(libandroid_, "ASharedMemory_create"));
   }
 }
 
