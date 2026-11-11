@@ -135,3 +135,12 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - O arquivo já continha um fallback equivalente para Apple libc++. O commit `25ad94540c9c556a3b9fe63ab6c5c3ebb1764a20` estendeu o mesmo fallback para Android (`__ANDROID__`), mantendo as conversões WinSystemClock/XSystemClock existentes.
 - Próximo passo: validar lint e build Android ARM64 neste commit; depois tratar o próximo erro real.
 - Status: build integral ainda não concluído e nenhum artefato SDK foi publicado.
+
+
+## Atualização — compatibilidade de thread no Android NDK (2026-11-11)
+- Build analisado: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/42945128946
+- CMake configurou corretamente e o Ninja avançou até aproximadamente 487/790 tarefas.
+- O bloqueio confirmado foi em `src/core/timer_queue.cpp`: o libc++ do NDK 27.2.12479018 não fornece `std::jthread` nem `std::stop_token` nessa configuração.
+- Correção enviada no commit `6886817aa63447809fa5c3e9c301fe34476a4b29`: substituído `std::jthread` por `std::thread`, com sinalizador atômico de parada, despertar da fila por item sentinela e `join()` explícito no destrutor. O tipo de ID da thread foi ajustado para `std::thread::id`.
+- Próximo passo: verificar lint e build Android ARM64 disparados pelo commit e corrigir apenas o próximo erro confirmado.
+- Status: compilação integral ainda não concluída; nenhum artefato SDK foi gerado.
