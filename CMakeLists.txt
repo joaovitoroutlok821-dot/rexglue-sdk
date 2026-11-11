@@ -2,9 +2,9 @@
 cmake_minimum_required(VERSION 3.25)
 
 if(APPLE)
-    set(REXGLUE_LANGUAGES C CXX OBJC OBJCXX)
+    set(REXGLUE_LANGUAGES C CXX ASM OBJC OBJCXX)
 else()
-    set(REXGLUE_LANGUAGES C CXX)
+    set(REXGLUE_LANGUAGES C CXX ASM)
 endif()
 
 project(ReXGlue
