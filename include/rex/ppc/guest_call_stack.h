@@ -52,9 +52,7 @@ class GuestCallStack {
     return true;
   }
 
-  const GuestCallFrame* Current() const {
-    return frames_.empty() ? nullptr : &frames_.back();
-  }
+  const GuestCallFrame* Current() const { return frames_.empty() ? nullptr : &frames_.back(); }
 
   std::size_t Size() const { return frames_.size(); }
   bool Empty() const { return frames_.empty(); }
