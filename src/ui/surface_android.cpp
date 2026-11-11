@@ -34,8 +34,8 @@ bool AndroidNativeWindowSurface::GetSizeImpl(uint32_t& width_out,
   // pixels. Keep querying SDL so surface dimensions follow window changes.
   int width = 0;
   int height = 0;
-  if (!SDL_GetWindowSizeInPixels(sdl_window_, &width, &height) || width <= 0 ||
-      height <= 0) {
+  if (!SDL_GetWindowSizeInPixels(sdl_window_, &width, &height) ||
+      width <= 0 || height <= 0) {
     return false;
   }
 
