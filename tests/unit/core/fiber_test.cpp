@@ -101,3 +101,34 @@ TEST_CASE("rex::thread::Fiber - multiple suspended fibers", "[fiber]") {
   main->Destroy();
   REQUIRE(Fiber::Current() == nullptr);
 }
+
+static void returning_fiber(void* raw_state) {
+  auto* state = static_cast<FiberTestState*>(raw_state);
+  state->current_before_switch = Fiber::Current() == state->self;
+  ++state->count;
+  // Returning is supported: the backend must switch to the activating fiber.
+}
+
+TEST_CASE("rex::thread::Fiber - returning entry safely resumes activator", "[fiber]") {
+  auto* main = Fiber::ConvertCurrentThread();
+  REQUIRE(main != nullptr);
+
+  FiberTestState state{main};
+  auto* fiber = Fiber::Create(256 * 1024, returning_fiber, &state);
+  REQUIRE(fiber != nullptr);
+  state.self = fiber;
+
+  Fiber::SwitchTo(fiber);
+  REQUIRE(Fiber::Current() == main);
+  REQUIRE(state.count == 1);
+  REQUIRE(state.current_before_switch);
+
+  // A completed fiber cannot be resumed onto its expired entry stack.
+  Fiber::SwitchTo(fiber);
+  REQUIRE(Fiber::Current() == main);
+  REQUIRE(state.count == 1);
+
+  fiber->Destroy();
+  main->Destroy();
+  REQUIRE(Fiber::Current() == nullptr);
+}
