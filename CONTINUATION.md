@@ -188,3 +188,13 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Adicionado teste unitário que valida retorno ao ativador, TLS correto e bloqueio de retomada após conclusão.
 - Esta alteração trata o ciclo de vida de fibras, não representa ainda um Save State completo do jogo. O snapshot de registradores/pilha para persistência em disco continua sendo uma etapa separada.
 - Validação pendente: lint, teste unitário e compilação do backend Android ARM64.
+
+
+## 2026-11-11 — Android SAF file-descriptor bridge
+
+- O build completo chegou à ligação de `librexruntime.so` (689/790) e falhou por símbolo não definido: `rex::filesystem::OpenAndroidContentFileDescriptor`.
+- A declaração já existia em `include/rex/filesystem.h`, e `MappedMemory::OpenForAndroidContentUri` já dependia dela, mas não havia implementação Android no alvo.
+- Adicionado um ponto de integração explícito para o app Android registrar um callback SAF (`SetAndroidContentUriOpener`). O callback recebe a URI e o modo (`r` ou `rw`) e deve devolver um descritor recém-aberto cuja propriedade é transferida ao SDK.
+- A implementação retorna erro seguro quando o app ainda não registrou o callback; não simula acesso a arquivos.
+- Próxima integração necessária no app Resident Evil: registrar o callback JNI usando ContentResolver e ParcelFileDescriptor, mantendo a permissão persistida da URI. Depois testar abertura, mmap, flush e fechamento.
+- Validação pendente: build Android ARM64 e lint. A ponte nativa não substitui ainda o registro JNI no aplicativo.
