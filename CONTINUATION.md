@@ -1,94 +1,96 @@
 # CONTINUATION.md — ReXGlue SDK Android ARM64
 
-Última atualização: 2026-11-10
+Última atualização: 2026-11-11
 
 ## Objetivo
-
-Registrar o andamento da adaptação do ReXGlue SDK para Android ARM64, com foco na criação de uma superfície Vulkan baseada na janela nativa Android (ANativeWindow), necessária para a execução dos projetos de recompilação no Android.
+Registrar a adaptação do ReXGlue SDK para Android ARM64, com foco na superfície Vulkan baseada em `ANativeWindow`.
 
 Repositório: https://github.com/joaovitoroutlok821-dot/rexglue-sdk
-Branch de trabalho: `android-arm64-fiber-experiment`
+Branch: `android-arm64-fiber-experiment`
 
 ## Estado atual
+A branch contém suporte inicial de plataforma Android no CMake e uma implementação de superfície nativa ligada à janela SDL3.
 
-Foram adicionadas alterações iniciais para reconhecer Android ARM64 na configuração CMake e conectar a janela SDL3 à superfície Vulkan nativa do Android.
+**A integração ainda não foi validada por compilação completa do SDK para Android ARM64.** Os commits abaixo registram alterações de código, não uma confirmação de build funcional.
 
-**Importante:** a integração ainda NÃO está validada por uma compilação completa do SDK para Android ARM64. Os commits listados abaixo registram alterações de código, não uma confirmação de build funcional.
-
-## Alterações realizadas
-
-As alterações abaixo foram gravadas diretamente na branch de trabalho:
-
-1. **CMake raiz — suporte inicial à plataforma Android**
+## Alterações já realizadas
+1. **CMake raiz — Android ARM64**
    - Commit: `94a4b9c425e081ef99e86041488648352d55fb24`
-   - Adicionada uma ramificação `ANDROID` antes da ramificação genérica UNIX.
-   - A configuração identifica o alvo como `android-arm64`, exige arquitetura ARM64 e define `REX_PLATFORM_ANDROID=1` e `REX_PLATFORM_LINUX=1`.
-   - A ramificação Linux existente foi mantida separada.
+   - Adicionada seleção `ANDROID` antes do bloco UNIX genérico.
+   - Identifica `android-arm64`, exige ARM64 e define `REX_PLATFORM_ANDROID=1` e `REX_PLATFORM_LINUX=1`.
 
-2. **CMake da interface — seleção dos arquivos Android**
+2. **CMake UI**
    - Commit: `d251402c5729ce6a3eb2b5cac54814197df4a3de`
-   - Adicionado `surface_android.cpp` como fonte da plataforma Android.
-   - A detecção e dependências X11/Wayland foram restringidas a UNIX que não seja Apple nem Android.
-   - Adicionada a ligação com a biblioteca Android do NDK (`android`).
+   - Seleciona `surface_android.cpp) no Android.
+   - Evita exigir X11/Wayland no Android.
+   - Liga a biblioteca NDK `android`.
 
-3. **Integração da janela SDL3**
+3. **Janela SDL3**
    - Commit: `ecd019099d45c22bad4f242e97dab29c8a9f3c9c`
-   - `window_sdl.cpp` inclui a implementação de superfície Android sob `REX_PLATFORM_ANDROID`.
-   - A janela nativa é obtida pela propriedade SDL3 `SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER`, usando `SDL_GetPointerProperty`.
-   - A superfície `AndroidNativeWindowSurface` é criada a partir do `SDL_Window*` e do `ANativeWindow*`.
+   - Adiciona ramo Android em `window_sdl.cpp`.
+   - Obtém `ANativeWindow*` pela propriedade `SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER` usando `SDL_GetPointerProperty`.
 
-4. **Declaração da superfície Android**
+4. **Cabeçalho da superfície**
    - Commit: `2dacbc163ebde15490b4fc65e46b34d389d1ec87`
-   - Criado `include/rex/ui/surface_android.h`.
-   - A classe `AndroidNativeWindowSurface` deriva de `Surface`, expõe o tipo `kTypeIndex_AndroidNativeWindow` e fornece acesso ao `ANativeWindow*`.
+   - Cria `include/rex/ui/surface_android.h`.
+   - Declara `AndroidNativeWindowSurface), derivada de `Surface`, com tipo `kTypeIndex_AndroidNativeWindow`.
 
-5. **Implementação da superfície Android**
-   - Commit: `3594d6b844b41431534047227f6be28492167a44`
-   - Criado `src/ui/surface_android.cpp`.
-   - A implementação adquire a referência do `ANativeWindow` no construtor e libera no destrutor.
-   - As dimensões em pixels são obtidas pela janela SDL com `SDL_GetWindowSizeInPixels`.
+5. **Implementação da superfície**
+   - Commit inicial: `3594d6b844b41431534047227f6be28492167a44`
+   - Cria `src/ui/surface_android.cpp`, adquire/libera referência de `ANativeWindow` e consulta dimensões com `SDL_GetWindowSizeInPixels`.
 
-## Integração Vulkan já existente no código
+6. **Correção de formatação**
+   - Commit: `c4a19d48c533bb443e4c4fd43b8228146625360d`
+   - Ajusta as quebras de linha de `GetSizeImpl` para atender ao clang-format.
 
-Na inspeção anterior do repositório, foram encontrados componentes que já contemplavam a superfície Android:
+## Integração Vulkan identificada
+Na leitura do código:
+- `vulkan_presenter.cpp` já contém o caso `AndroidNativeWindowSurface` e chama `vkCreateAndroidSurfaceKHR`.
+- `vulkan_instance.cpp` já habilita `VK_KHR_android_surface` quando `VK_USE_PLATFORM_ANDROID_KHR` está definido.
+- `surface.h` já contém `kTypeIndex_AndroidNativeWindow) e sua flag.
+- SDL3 está fixado no submódulo em `147a8ee32dbf9ac02f3794964490687b6bbda1bc`; a propriedade Android foi localizada nessa versão.
 
-- `vulkan_presenter.cpp` já possui o caso `AndroidNativeWindowSurface` e chama `vkCreateAndroidSurfaceKHR`.
-- A implementação da instância Vulkan já habilita `VK_KHR_android_surface` quando `VK_USE_PLATFORM_ANDROID_KHR` está definido.
-- `surface.h` já contém o identificador `kTypeIndex_AndroidNativeWindow` e a flag correspondente.
-- O SDL3 está fixado no submódulo no commit `147a8ee32dbf9ac02f3794964490687b6bbda1bc`; a propriedade Android usada acima existe nessa versão inspecionada.
+Ainda falta confirmar por compilação que os macros, headers e dependências Vulkan Android estão disponíveis.
 
-Esses pontos foram identificados por leitura do código. Ainda precisam ser confirmados por compilação Android real.
+## CI — resultado observado
+Workflow **Lint & Format Check #26**:
+https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/42930048030
 
-## CI / GitHub Actions
+- Run ID: `42930048030`
+- Commit testado: `3594d6b844b41431534047227f6be28492167a44`
+- Resultado: **failure**
+- Job: `Format Check` (ID `130226196231`)
+- O passo `Check C/C++ formatting` falhou em duas linhas de `src/ui/surface_android.cpp` (27 e 37).
+- Correção enviada no commit `c4a19d48c533bb443e4c4fd43b8228146625360d`.
+- O lint precisa ser executado novamente para confirmar a correção.
 
-Foi iniciado automaticamente o workflow **Lint & Format Check #26** para o commit `3594d6b844b41431534047227f6be28492167a44`.
+O teste Android ARM64 do Fiber valida somente `fiber_android_arm64.cpp` e seu assembly; não valida o SDK completo, UI ou Vulkan.
 
-Execução: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/42930048030
+## Revisão do contrato Surface
+Foi relido `include/rex/ui/surface.h`:
+- O construtor base `Surface()` é protegido e default.
+- `GetType() const` é virtual puro.
+- `GetSizeImpl(uint32_t&, uint32_t&) const` é virtual puro protegido.
+- `GetSize()` é público e valida dimensões zero.
 
-Último estado observado durante a sessão de trabalho: `in_progress`. O resultado final ainda precisa ser consultado.
+A assinatura da implementação Android corresponde ao contrato observado.
 
-O workflow de teste Android ARM64 do Fiber mencionado anteriormente valida somente os arquivos do backend Fiber (`fiber_android_arm64.cpp` e seu assembly). Ele **não** comprova a compilação completa do SDK nem a integração Vulkan/superfície Android.
+## Pendências — retomar nesta ordem
+1. Executar novamente o Lint & Format Check após o commit `c4a19d48c533bb443e4c4fd43b8228146625360d`.
+2. Verificar os includes SDL3 em `window_sdl.cpp) para `SDL_GetPointerProperty` e `SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER`.
+3. Confirmar que `VK_USE_PLATFORM_ANDROID_KHR` é definido nos alvos Android; sem ele os tipos e funções Android Vulkan podem não ser expostos.
+4. Auditar blocos CMake condicionados apenas por `UNIX), detectando dependências Linux/X11/Wayland indevidas.
+5. Revisar o ciclo de vida de `SDL_Window*` e `ANativeWindow*`; a superfície mantém referência ao native window, mas consulta o SDL window para dimensões.
+6. Inspecionar `_build-platform.yaml` e workflows existentes para preparar compilação completa Android ARM64 com NDK e Vulkan headers/loader.
+7. Rodar a compilação completa e corrigir os erros encontrados.
+8. Só após build integral aprovado, integrar o SDK ao projeto Resident Evil Code Veronica e validar o APK no telefone.
 
-## Pendências — próxima sequência de trabalho
+## Critérios de conclusão
+- ABI Android `arm64-v8a`.
+- CMake configura sem dependências Linux/X11/Wayland indevidas.
+- Compilação completa inclui UI e backend Vulkan Android.
+- Superfície Vulkan Android compila e cria apresentação sobre `ANativeWindow`.
+- Depois, APK integrado instala, apresenta imagem e mantém o ciclo de vida da janela sem crash.
 
-1. Consultar o resultado final do Lint & Format Check #26 e corrigir eventuais falhas.
-2. Revisar o contrato completo da classe base `Surface` e confirmar assinaturas, visibilidade e ciclo de vida da superfície Android.
-3. Verificar os includes SDL3 usados em `window_sdl.cpp` e garantir que a propriedade `SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER` esteja visível no build Android.
-4. Confirmar que `VK_USE_PLATFORM_ANDROID_KHR` é definido para os alvos Android e que os headers Vulkan expõem `VkAndroidSurfaceCreateInfoKHR` e `vkCreateAndroidSurfaceKHR`.
-5. Auditar outros blocos CMake condicionados apenas por `UNIX` para evitar que dependências Linux/X11/Wayland sejam aplicadas ao Android.
-6. Revisar o tempo de vida de `SDL_Window*` e `ANativeWindow*` para evitar uso após destruição da janela.
-7. Preparar ou adaptar um workflow GitHub Actions que configure e compile o SDK completo com Android NDK, ARM64 e dependências Vulkan necessárias.
-8. Executar a compilação completa e corrigir erros em sequência.
-9. Só depois de um build completo aprovado, integrar a versão validada do SDK ao projeto Resident Evil Code Veronica e testar a geração do APK.
-
-## Restrições e critérios de validação
-
-- O alvo é Android ARM64 (ABI `arm64-v8a`).
-- O desenvolvimento e a validação devem poder ser feitos pelo GitHub Actions, pois o ambiente de desenvolvimento disponível é um telefone Android, sem computador.
-- Não considerar a adaptação concluída apenas porque o CMake configura, o Lint passa ou o teste isolado do Fiber passa.
-- Critério mínimo: compilação completa do SDK Android ARM64 incluindo a camada UI e o caminho de apresentação Vulkan Android.
-- Critério posterior: APK integrado instala, abre a janela nativa, apresenta a imagem corretamente e mantém o ciclo de vida da superfície sem crash.
-
-## Último ponto para retomar
-
-Retomar pelo resultado do workflow #26. Em seguida, revisar os contratos e macros Android/Vulkan e montar a primeira compilação completa do SDK. Não repetir as cinco alterações já registradas acima sem antes identificar um erro concreto que exija modificá-las.
+## Ponto exato de retomada
+O último problema conhecido de CI foi formatação em `surface_android.cpp), corrigida no commit `c4a19d48c533bb443e4c4fd43b8228146625360d`. Próximo passo: verificar o novo lint e então validar macros Vulkan e preparar o workflow de build Android completo.
