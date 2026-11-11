@@ -59,6 +59,9 @@ struct Fiber {
   void (*entry_)(void*) = nullptr;
   void* arg_ = nullptr;
   bool is_thread_fiber_ = false;
+  Fiber* return_to_ = nullptr;
+  bool started_ = false;
+  bool finished_ = false;
   static void Trampoline();
 #elif (REX_PLATFORM_LINUX && !REX_PLATFORM_ANDROID) || REX_PLATFORM_MAC
   ucontext_t context_{};
