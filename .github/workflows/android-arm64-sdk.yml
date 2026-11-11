@@ -28,10 +28,16 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Set up Android SDK and NDK
+      - name: Set up Android command-line tools
         uses: android-actions/setup-android@v3
         with:
-          ndk-version: 27.2.12479018
+          accept-android-sdk-licenses: false
+          packages: platform-tools
+
+      - name: Accept SDK licenses and install NDK
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager --install "platform-tools" "ndk;27.2.12479018"
 
       - name: Install build tools
         run: |
