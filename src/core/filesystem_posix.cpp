@@ -35,9 +35,10 @@
 #include <libgen.h>
 #include <pwd.h>
 
-// macOS off_t is 64-bit with no *64 large-file variants; Linux keeps the
-// explicit *64 forms for legacy 32-bit off_t distributions.
-#if defined(__APPLE__)
+// Apple and Android use 64-bit off_t and expose the standard POSIX
+// large-file functions. Linux keeps explicit *64 forms for legacy 32-bit
+// off_t distributions.
+#if defined(__APPLE__) || defined(__ANDROID__)
 using rex_off64_t = off_t;
 #define rex_fseeko64 fseeko
 #define rex_ftello64 ftello
