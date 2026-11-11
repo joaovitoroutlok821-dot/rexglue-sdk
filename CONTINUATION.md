@@ -116,3 +116,13 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - A geração falhou depois da configuração porque o projeto não havia habilitado a linguagem ASM: variável interna ausente `CMAKE_ASM_COMPILE_OBJECT`.
 - Correção enviada no commit `af580822002d85fde899c9c683a66aa41ba8194a`: ASM foi incluída nas linguagens do projeto para builds normais e Apple.
 - Próximo passo: verificar a nova execução e corrigir o próximo erro real, se houver. A compilação integral ainda não foi concluída.
+
+
+## Atualização — compatibilidade de conversão float/double no Android (2026-11-11)
+- Execução Android ARM64: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/42942946133
+- O CMake configurou corretamente para Android ARM64 e o Ninja iniciou a compilação (mais de 420 de 790 tarefas foram alcançadas).
+- O novo bloqueio ocorreu em `include/rex/string/numeric.h`: o libc++ fornecido pelo NDK 27.2.12479018 não disponibilizou as sobrecargas de ponto flutuante de `std::from_chars`, causando erros para `float` e `double`.
+- A implementação já possuía um parser portátil baseado em locale C para macOS. O commit `13b95a3e3d6f4cd201f79e4dec51fb5208a96e16` estendeu esse caminho também ao Android, usando `strtof_l`/`strtod_l` e mantendo a validação de entrada e erros.
+- O parser hexadecimal e as conversões integrais continuam usando `std::from_chars`.
+- Próximo passo: aguardar lint e build Android ARM64 no commit acima; corrigir somente o próximo erro confirmado.
+- Status: build completo ainda não aprovado; artefato SDK ainda não foi gerado.
