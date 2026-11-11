@@ -59,16 +59,27 @@ void Fiber::Trampoline() {
   Fiber* fiber = tls_current_;
   assert(fiber && fiber->entry_);
   fiber->entry_(fiber->arg_);
-  // Returning from a fiber entry is a programming error: the caller must
-  // explicitly switch back to its scheduler/main fiber.
+  // A completed fiber must leave its own stack before its owner can destroy it.
+  // Return to the fiber that first activated it; never fall through to an
+  // invalid link register or continue on a stack that may later be freed.
+  fiber->finished_ = true;
+  Fiber* return_to = fiber->return_to_;
+  assert(return_to);
+  if (return_to) {
+    Fiber::SwitchTo(return_to);
+  }
   std::terminate();
 }
 
 void Fiber::SwitchTo(Fiber* target) {
   Fiber* from = tls_current_;
   assert(from && target && from != target);
-  if (!from || !target || from == target) {
+  if (!from || !target || from == target || target->finished_) {
     return;
+  }
+  if (!target->is_thread_fiber_ && !target->started_) {
+    target->return_to_ = from;
+    target->started_ = true;
   }
   tls_current_ = target;
   rex_fiber_android_arm64_switch(&from->context_, &target->context_);
