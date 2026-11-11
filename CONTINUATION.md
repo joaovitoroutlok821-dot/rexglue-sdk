@@ -198,3 +198,13 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - A implementação retorna erro seguro quando o app ainda não registrou o callback; não simula acesso a arquivos.
 - Próxima integração necessária no app Resident Evil: registrar o callback JNI usando ContentResolver e ParcelFileDescriptor, mantendo a permissão persistida da URI. Depois testar abertura, mmap, flush e fechamento.
 - Validação pendente: build Android ARM64 e lint. A ponte nativa não substitui ainda o registro JNI no aplicativo.
+
+
+## 2026-11-11 — Correção do parser float/double no CI Linux
+
+- Guest Frame Prototype Unit Tests #4: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43077240114
+- O job `unit-tests` falhou durante `Build unit tests`, antes de executar os testes. O log confirma compilador `/usr/bin/clang++-18`, libc++ e macro `REX_PLATFORM_LINUX=1`.
+- A causa não era uma condição Android: o fallback `portable_float_from_chars` já existia para macOS/Android, mas não era ativado no Linux do runner. Assim, as conversões de `float` e `double` em `numeric.h` tentavam usar sobrecargas de `std::from_chars` ausentes nessa libc++.
+- Correção enviada: incluir `REX_PLATFORM_LINUX` nas quatro condições de compilação que habilitam `locale.h`, o parser C-locale e seu uso em `float`, `double` e `vec128_t`. O parser mantém locale C explícito e a validação existente; os caminhos integrais/hexadecimais continuam inalterados.
+- Commit da correção: `6940da25ff175c183e8fc72136828bf5c844bded`.
+- Próximo passo: verificar os novos workflows de lint e Guest Frame Unit Tests disparados pelo commit. Os testes de frame ainda não estão confirmados como aprovados.
