@@ -35,6 +35,13 @@ jobs:
             wayland-protocols libxkbcommon-dev libdecor-0-dev libasound2-dev \
             libpulse-dev libpipewire-0.3-dev
 
+      - name: Verify C++23 toolchain
+        run: |
+          clang++-18 --version
+          printf '#include <expected>\nint main() { std::expected<int, int> value = 1; return *value - 1; }\n' > /tmp/expected-check.cpp
+          clang++-18 -std=c++23 -stdlib=libc++ /tmp/expected-check.cpp -o /tmp/expected-check
+          /tmp/expected-check
+
       - name: Configure test build
         run: |
           cmake -S . -B out/build/guest-frame-tests -G Ninja \
