@@ -54,6 +54,14 @@ target_link_libraries(rexapp_compile_test PRIVATE
 add_dependencies(unit_tests rexapp_compile_test)
 
 # Strip Tracy/profiling instrumentation from test targets
+# Catch2 streams chrono duration representations through std::ostream.
+# libc++ does not provide ostream overloads for compiler-provided __int128 types.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_compile_options(unit_tests PRIVATE
+        -include ${CMAKE_CURRENT_SOURCE_DIR}/catch2_compat.h
+    )
+endif()
+
 target_compile_options(unit_tests PRIVATE
     -UTRACY_ENABLE -UREXGLUE_ENABLE_PROFILING
     -UREXGLUE_ENABLE_PERF_COUNTERS -UREXGLUE_PROFILE_GUEST_FUNCTIONS
