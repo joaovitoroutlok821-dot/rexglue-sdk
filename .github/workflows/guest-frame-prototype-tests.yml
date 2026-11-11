@@ -8,6 +8,7 @@ on:
     paths:
       - 'include/rex/ppc/guest_call_stack.h'
       - 'include/rex/string/numeric.h'
+      - 'include/rex/chrono/chrono.h'
       - 'tests/unit/ppc/guest_call_stack_test.cpp'
       - 'tests/unit/CMakeLists.txt'
       - 'CMakeLists.txt'
