@@ -2,6 +2,13 @@
 
 Última atualização: 2026-11-11
 
+## Atualização de continuidade — commit `82cc58cbda795d5f5ae566617a8be67f4b96a1b8`
+- O Lint & Format Check após a primeira correção ainda falhou: o clang-format 20.1.8 continuou apontando as linhas 27 e 37 de `src/ui/surface_android.cpp`.
+- A causa foi a quebra/alinhamento da assinatura de `GetSizeImpl` e a condição composta de validação do tamanho.
+- Novo ajuste enviado: assinatura em uma linha e validações separadas, mantendo o mesmo comportamento.
+- Commit mais recente: `82cc58cbda795d5f5ae566617a8be67f4b96a1b8`.
+- Aguardar/verificar o novo Lint & Format Check disparado por esse commit; ainda não declarar lint aprovado.
+
 ## Objetivo
 Registrar a adaptação do ReXGlue SDK para Android ARM64, com foco na superfície Vulkan baseada em `ANativeWindow`.
 
@@ -21,7 +28,7 @@ A branch contém suporte inicial de plataforma Android no CMake e uma implementa
 
 2. **CMake UI**
    - Commit: `d251402c5729ce6a3eb2b5cac54814197df4a3de`
-   - Seleciona `surface_android.cpp) no Android.
+   - Seleciona ``surface_android.cpp` no Android.
    - Evita exigir X11/Wayland no Android.
    - Liga a biblioteca NDK `android`.
 
@@ -33,7 +40,7 @@ A branch contém suporte inicial de plataforma Android no CMake e uma implementa
 4. **Cabeçalho da superfície**
    - Commit: `2dacbc163ebde15490b4fc65e46b34d389d1ec87`
    - Cria `include/rex/ui/surface_android.h`.
-   - Declara `AndroidNativeWindowSurface), derivada de `Surface`, com tipo `kTypeIndex_AndroidNativeWindow`.
+   - Declara ``AndroidNativeWindowSurface`, derivada de `Surface`, com tipo `kTypeIndex_AndroidNativeWindow`.
 
 5. **Implementação da superfície**
    - Commit inicial: `3594d6b844b41431534047227f6be28492167a44`
@@ -47,7 +54,7 @@ A branch contém suporte inicial de plataforma Android no CMake e uma implementa
 Na leitura do código:
 - `vulkan_presenter.cpp` já contém o caso `AndroidNativeWindowSurface` e chama `vkCreateAndroidSurfaceKHR`.
 - `vulkan_instance.cpp` já habilita `VK_KHR_android_surface` quando `VK_USE_PLATFORM_ANDROID_KHR` está definido.
-- `surface.h` já contém `kTypeIndex_AndroidNativeWindow) e sua flag.
+- `surface.h` já contém ``kTypeIndex_AndroidNativeWindow` e sua flag.
 - SDL3 está fixado no submódulo em `147a8ee32dbf9ac02f3794964490687b6bbda1bc`; a propriedade Android foi localizada nessa versão.
 
 Ainda falta confirmar por compilação que os macros, headers e dependências Vulkan Android estão disponíveis.
@@ -77,9 +84,9 @@ A assinatura da implementação Android corresponde ao contrato observado.
 
 ## Pendências — retomar nesta ordem
 1. Executar novamente o Lint & Format Check após o commit `c4a19d48c533bb443e4c4fd43b8228146625360d`.
-2. Verificar os includes SDL3 em `window_sdl.cpp) para `SDL_GetPointerProperty` e `SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER`.
+2. Verificar os includes SDL3 em ``window_sdl.cpp` para `SDL_GetPointerProperty` e `SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER`.
 3. Confirmar que `VK_USE_PLATFORM_ANDROID_KHR` é definido nos alvos Android; sem ele os tipos e funções Android Vulkan podem não ser expostos.
-4. Auditar blocos CMake condicionados apenas por `UNIX), detectando dependências Linux/X11/Wayland indevidas.
+4. Auditar blocos CMake condicionados apenas por `UNIX`, detectando dependências Linux/X11/Wayland indevidas.
 5. Revisar o ciclo de vida de `SDL_Window*` e `ANativeWindow*`; a superfície mantém referência ao native window, mas consulta o SDL window para dimensões.
 6. Inspecionar `_build-platform.yaml` e workflows existentes para preparar compilação completa Android ARM64 com NDK e Vulkan headers/loader.
 7. Rodar a compilação completa e corrigir os erros encontrados.
