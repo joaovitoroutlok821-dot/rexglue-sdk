@@ -6,6 +6,7 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <utility>
 #include <vector>
@@ -55,7 +56,7 @@ class GuestCallStack {
     return frames_.empty() ? nullptr : &frames_.back();
   }
 
-  size_t Size() const { return frames_.size(); }
+  std::size_t Size() const { return frames_.size(); }
   bool Empty() const { return frames_.empty(); }
 
   Snapshot SaveSnapshot() const { return frames_; }
