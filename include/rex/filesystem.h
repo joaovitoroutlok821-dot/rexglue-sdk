@@ -127,6 +127,11 @@ bool GetInfo(const std::filesystem::path& path, FileInfo* out_info);
 std::vector<FileInfo> ListFiles(const std::filesystem::path& path);
 
 #if REX_PLATFORM_ANDROID
+// Android app integration point for Storage Access Framework content URIs.
+// The callback must return a newly owned file descriptor (or -1 on failure).
+// The SDK takes ownership of a successful descriptor and closes it after use.
+using AndroidContentUriOpener = int (*)(const std::string_view uri, const char* mode);
+void SetAndroidContentUriOpener(AndroidContentUriOpener opener);
 void AndroidInitialize();
 void AndroidShutdown();
 bool IsAndroidContentUri(const std::string_view source);
