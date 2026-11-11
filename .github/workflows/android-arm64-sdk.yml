@@ -1,0 +1,67 @@
+name: Android ARM64 SDK build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - android-arm64-fiber-experiment
+    paths:
+      - 'CMakeLists.txt'
+      - 'CMakePresets.json'
+      - 'cmake/**'
+      - 'include/**'
+      - 'src/**'
+      - 'thirdparty/**'
+      - '.github/workflows/android-arm64-sdk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source and submodules
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Android SDK and NDK
+        uses: android-actions/setup-android@v3
+        with:
+          ndk-version: 27.2.12479018
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build zip
+
+      - name: Verify NDK
+        run: |
+          test -f "$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake"
+          echo "NDK=$ANDROID_NDK_HOME"
+          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++" --version
+
+      - name: Configure Android ARM64
+        run: cmake --preset android-arm64
+
+      - name: Build SDK
+        run: cmake --build out/build/android-arm64 --config Release --parallel 2
+
+      - name: Install SDK
+        run: cmake --install out/build/android-arm64 --config Release
+
+      - name: Package SDK
+        run: |
+          cd out/install
+          zip -r rexglue-sdk-android-arm64.zip android-arm64
+
+      - name: Upload Android SDK artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: rexglue-sdk-android-arm64
+          path: out/install/rexglue-sdk-android-arm64.zip
+          if-no-files-found: error
+          retention-days: 14
