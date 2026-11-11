@@ -169,6 +169,8 @@ elseif(ANDROID)
         message(FATAL_ERROR "ReXGlue Android builds currently require ARM64 (found ${REX_TARGET_PROCESSOR})")
     endif()
     add_compile_definitions(REX_PLATFORM_ANDROID=1 REX_PLATFORM_LINUX=1)
+    # Android Vulkan surface declarations and VK_KHR_android_surface support.
+    add_compile_definitions(VK_USE_PLATFORM_ANDROID_KHR=1)
 elseif(UNIX AND NOT APPLE)
     if(REX_TARGET_PROCESSOR MATCHES "AMD64|x86_64")
         set(REX_PLATFORM "linux-amd64")
