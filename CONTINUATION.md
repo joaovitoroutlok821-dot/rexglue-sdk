@@ -213,3 +213,13 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Ajuste adicional de CI: o filtro `paths` do workflow de testes não incluía `include/rex/string/numeric.h`; por isso, a alteração do parser não dispararia automaticamente o teste específico. O cabeçalho foi incluído no filtro.
 - Commit do ajuste de workflow: `80489070dce5a9b16ee1f1f1e1a125ccb87c195d`.
 - A execução do Guest Frame Prototype Unit Tests deve ser conferida no novo run; não considerar a correção validada até o build e o CTest terminarem com sucesso.
+
+
+## 2026-11-11 — Fallback de clock_cast para libc++ no Linux (Guest Frame CI)
+
+- Guest Frame Prototype Unit Tests #5: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43110121690
+- A correção anterior em `include/rex/string/numeric.h` eliminou os erros de `std::from_chars`; a compilação avançou até aproximadamente 533/929 tarefas.
+- O novo bloqueio ocorreu em `include/rex/chrono/chrono.h`: o Clang 18 com libc++ no Ubuntu 24.04 não declara `std::chrono::clock_time_conversion`/ `clock_cast`, mas o cabeçalho especializa esse template para converter `WinSystemClock` e `XSystemClock`.
+- O próprio arquivo já fornece um fallback equivalente para Apple e Android. A condição foi estendida também a Linux (`__linux__`), reutilizando o mesmo fallback sem alterar as conversões específicas dos relógios.
+- O filtro `paths` do workflow Guest Frame também foi atualizado para incluir `include/rex/chrono/chrono.h`, garantindo que essa correção dispare a validação.
+- Próximo passo: verificar o novo workflow de testes e os checks de lint. O CTest ainda não foi executado e o protótipo de Save State continua não validado.
