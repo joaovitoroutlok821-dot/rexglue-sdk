@@ -144,3 +144,12 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Correção enviada no commit `6886817aa63447809fa5c3e9c301fe34476a4b29`: substituído `std::jthread` por `std::thread`, com sinalizador atômico de parada, despertar da fila por item sentinela e `join()` explícito no destrutor. O tipo de ID da thread foi ajustado para `std::thread::id`.
 - Próximo passo: verificar lint e build Android ARM64 disparados pelo commit e corrigir apenas o próximo erro confirmado.
 - Status: compilação integral ainda não concluída; nenhum artefato SDK foi gerado.
+
+
+## Atualização — APIs de arquivos grandes no Android (2026-11-11)
+- Build analisado: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/42946044376
+- A adaptação de `TimerQueue` compilou; a execução avançou até aproximadamente 497/790 tarefas e compilou também o backend fiber Android ARM64 em C++ e assembly.
+- O novo bloqueio confirmado foi em `src/core/filesystem_posix.cpp`: o Android NDK não declara `fseeko64`/ `ftello64`; disponibiliza as variantes POSIX `fseeko`/`ftello`. Em Android ARM64, `off_t` já é 64-bit.
+- Correção enviada no commit `d4c68c0a74cb1971b52ef1cbc0a3f2758c2c3341`: Android foi incluído junto com Apple no ramo que usa `off_t`, `fseeko`, `ftello` e `ftruncate`; Linux mantém as variantes explícitas `*64` para compatibilidade com distribuições antigas de 32 bits.
+- Próximo passo: verificar a nova compilação e o lint, tratando o próximo erro confirmado.
+- Status: SDK ainda não foi compilado integralmente e não há artefato publicado.
