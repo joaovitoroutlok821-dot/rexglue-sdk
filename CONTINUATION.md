@@ -178,3 +178,13 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Restringi os trechos de mutex robusto ao Linux que não é Android. No Android, o sinal de callback agora usa `pthread_kill`, suficiente porque o handler trata esse sinal apenas como aviso para acordar e drenar callbacks na espera alertável; o payload não era consumido pelo handler.
 - Alteração enviada no commit `96fab70ab9b0ae2691bac3224d40785cc35df09d`.
 - Lint e nova compilação ainda precisam ser confirmados. Nenhum artefato SDK foi gerado até aqui.
+
+
+## 2026-11-11 — Retorno seguro de fibras Android ARM64
+
+- A revisão do backend confirmou que o TLS é atualizado antes de cada troca e que o assembly preserva x19–x30, SP, d8–d15, FPCR e FPSR.
+- Foi identificado um risco real no término da função de entrada: o trampoline terminava o processo com `std::terminate`, sem retornar cooperativamente ao scheduler/à fibra que ativou a fibra.
+- O backend Android agora registra a fibra ativadora na primeira troca. Quando a função de entrada retorna, marca a fibra como concluída e troca de volta para a fibra ativadora; tentativas posteriores de retomar uma fibra concluída são ignoradas.
+- Adicionado teste unitário que valida retorno ao ativador, TLS correto e bloqueio de retomada após conclusão.
+- Esta alteração trata o ciclo de vida de fibras, não representa ainda um Save State completo do jogo. O snapshot de registradores/pilha para persistência em disco continua sendo uma etapa separada.
+- Validação pendente: lint, teste unitário e compilação do backend Android ARM64.
