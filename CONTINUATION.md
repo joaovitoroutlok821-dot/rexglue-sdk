@@ -153,3 +153,12 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Correção enviada no commit `d4c68c0a74cb1971b52ef1cbc0a3f2758c2c3341`: Android foi incluído junto com Apple no ramo que usa `off_t`, `fseeko`, `ftello` e `ftruncate`; Linux mantém as variantes explícitas `*64` para compatibilidade com distribuições antigas de 32 bits.
 - Próximo passo: verificar a nova compilação e o lint, tratando o próximo erro confirmado.
 - Status: SDK ainda não foi compilado integralmente e não há artefato publicado.
+
+
+## 2026-11-11 — Android shared-memory API detection
+
+- The Android ARM64 build reached task 504/790 and failed because `src/core/memory_posix.cpp` referenced `rex::GetAndroidApiLevel()`, which is not declared or implemented in this SDK branch.
+- Removed that undeclared dependency. `AndroidInitialize()` now opens `libandroid.so` and resolves `ASharedMemory_create` directly with `dlsym`.
+- This detects API 26+ by symbol availability and preserves the existing `/dev/ashmem` fallback when the symbol is unavailable, without requiring a separate Android API-level helper.
+- Source commit: `7fd7b72fb0a2d6ce27924cbd031aeb77f48c5a73`.
+- Validation: pending the next Android ARM64 build and lint workflow runs.
