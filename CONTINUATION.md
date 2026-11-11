@@ -223,3 +223,12 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - O próprio arquivo já fornece um fallback equivalente para Apple e Android. A condição foi estendida também a Linux (`__linux__`), reutilizando o mesmo fallback sem alterar as conversões específicas dos relógios.
 - O filtro `paths` do workflow Guest Frame também foi atualizado para incluir `include/rex/chrono/chrono.h`, garantindo que essa correção dispare a validação.
 - Próximo passo: verificar o novo workflow de testes e os checks de lint. O CTest ainda não foi executado e o protótipo de Save State continua não validado.
+
+
+## 2026-11-11 — Compatibilidade Catch2/libc++ para __int128
+
+- Guest Frame Prototype Unit Tests #6: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43112575765
+- As correções de `numeric.h` e `chrono.h` permitiram que o build chegasse a 922/929 tarefas. O bloqueio seguinte foi no Catch2, ao formatar `std::chrono::duration` cujo tipo de representação é `__int128`; libc++ não fornece um operador `std::ostream << __int128`, causando ambiguidade.
+- Adicionado `tests/unit/catch2_compat.h` com operadores de saída decimal para `__int128` e `unsigned __int128`, incluindo tratamento seguro do menor valor signed.
+- O cabeçalho é forçado apenas no alvo `unit_tests` por `tests/unit/CMakeLists.txt`; não altera o runtime/SDK nem o APK. O workflow também monitora o novo cabeçalho.
+- Próximo passo: aguardar Lint e Guest Frame Unit Tests #7. A compilação anterior ainda não chegou ao CTest; Save State não está validado.
