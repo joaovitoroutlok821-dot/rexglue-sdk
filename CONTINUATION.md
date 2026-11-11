@@ -208,3 +208,8 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Correção enviada: incluir `REX_PLATFORM_LINUX` nas quatro condições de compilação que habilitam `locale.h`, o parser C-locale e seu uso em `float`, `double` e `vec128_t`. O parser mantém locale C explícito e a validação existente; os caminhos integrais/hexadecimais continuam inalterados.
 - Commit da correção: `6940da25ff175c183e8fc72136828bf5c844bded`.
 - Próximo passo: verificar os novos workflows de lint e Guest Frame Unit Tests disparados pelo commit. Os testes de frame ainda não estão confirmados como aprovados.
+
+
+- Ajuste adicional de CI: o filtro `paths` do workflow de testes não incluía `include/rex/string/numeric.h`; por isso, a alteração do parser não dispararia automaticamente o teste específico. O cabeçalho foi incluído no filtro.
+- Commit do ajuste de workflow: `80489070dce5a9b16ee1f1f1e1a125ccb87c195d`.
+- A execução do Guest Frame Prototype Unit Tests deve ser conferida no novo run; não considerar a correção validada até o build e o CTest terminarem com sucesso.
