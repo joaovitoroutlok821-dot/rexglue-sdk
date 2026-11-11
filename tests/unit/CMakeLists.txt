@@ -13,6 +13,7 @@ add_executable(unit_tests
     core/chrono_test.cpp
     ppc/import_function_test.cpp
     ppc/stack_test.cpp
+    ppc/guest_call_stack_test.cpp
     system/guest_path_test.cpp
     system/achievement_manager_test.cpp
     system/function_dispatcher_test.cpp
