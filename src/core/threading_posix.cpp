@@ -45,7 +45,6 @@ static_assert(REX_PLATFORM_LINUX || REX_PLATFORM_MAC, "This file is POSIX-only")
 #if REX_PLATFORM_ANDROID
 #include <dlfcn.h>
 
-#include <rex/main_android.h>
 #include <rex/string.h>
 #endif
 
@@ -71,14 +70,12 @@ static void* android_libc_;
 static int (*android_pthread_getname_np_)(pthread_t pthread, char* buf, size_t n);
 
 void AndroidInitialize() {
-  if (rex::GetAndroidApiLevel() >= 26) {
-    android_libc_ = dlopen("libc.so", RTLD_NOW);
-    assert_not_null(android_libc_);
-    if (android_libc_) {
-      android_pthread_getname_np_ = reinterpret_cast<decltype(android_pthread_getname_np_)>(
-          dlsym(android_libc_, "pthread_getname_np"));
-      assert_not_null(android_pthread_getname_np_);
-    }
+  // pthread_getname_np is available on Android API 26+. Resolve it directly
+  // so older NDK headers do not need a project-specific API-level helper.
+  android_libc_ = dlopen("libc.so", RTLD_NOW);
+  if (android_libc_) {
+    android_pthread_getname_np_ = reinterpret_cast<decltype(android_pthread_getname_np_)>(
+        dlsym(android_libc_, "pthread_getname_np"));
   }
 }
 
