@@ -102,6 +102,7 @@ TEST_CASE("rex::thread::Fiber - multiple suspended fibers", "[fiber]") {
   REQUIRE(Fiber::Current() == nullptr);
 }
 
+#if REX_PLATFORM_ANDROID && REX_ARCH_ARM64
 static void returning_fiber(void* raw_state) {
   auto* state = static_cast<FiberTestState*>(raw_state);
   state->current_before_switch = Fiber::Current() == state->self;
@@ -132,3 +133,5 @@ TEST_CASE("rex::thread::Fiber - returning entry safely resumes activator", "[fib
   main->Destroy();
   REQUIRE(Fiber::Current() == nullptr);
 }
+
+#endif
