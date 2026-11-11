@@ -54,6 +54,7 @@ if(WIN32)
     )
     target_compile_definitions(rexcore PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
 elseif(ANDROID AND CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a")
+    target_sources(rexcore PRIVATE filesystem_android.cpp)
     target_sources(rexcore PRIVATE
         atomic_posix.cpp
         clock_posix.cpp
