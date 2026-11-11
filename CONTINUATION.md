@@ -170,3 +170,11 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Removido o include inexistente e substituída a consulta de nível de API pela resolução dinâmica de `pthread_getname_np` via `dlopen("libc.so")` e `dlsym`, preservando o comportamento opcional em versões sem o símbolo.
 - Alteração registrada no commit `776ce4d3a579864a168517732d988c009137a326`.
 - Próximo passo: validar lint e executar novamente a compilação Android ARM64; ainda não há artefato SDK confirmado.
+
+
+## 2026-11-11 — Compatibilidade de mutexes e sinais POSIX no Android
+
+- A compilação passou pela configuração e chegou à tarefa 507/790. O erro seguinte em `threading_posix.cpp` foi causado por macros Linux ativadas também no Android: o NDK não declara `PTHREAD_MUTEX_ROBUST` nem `pthread_mutex_consistent`; também não declara a chamada `sigqueue` usada nesse ramo.
+- Restringi os trechos de mutex robusto ao Linux que não é Android. No Android, o sinal de callback agora usa `pthread_kill`, suficiente porque o handler trata esse sinal apenas como aviso para acordar e drenar callbacks na espera alertável; o payload não era consumido pelo handler.
+- Alteração enviada no commit `96fab70ab9b0ae2691bac3224d40785cc35df09d`.
+- Lint e nova compilação ainda precisam ser confirmados. Nenhum artefato SDK foi gerado até aqui.
