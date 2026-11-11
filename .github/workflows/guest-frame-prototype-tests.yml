@@ -1,0 +1,53 @@
+name: Guest Frame Prototype Unit Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - save-state-frame-prototype
+    paths:
+      - 'include/rex/ppc/guest_call_stack.h'
+      - 'tests/unit/ppc/guest_call_stack_test.cpp'
+      - 'tests/unit/CMakeLists.txt'
+      - 'CMakeLists.txt'
+      - 'CMakePresets.json'
+      - '.github/workflows/guest-frame-prototype-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source and submodules
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build build-essential libvulkan-dev \
+            libgtk-3-dev libx11-xcb-dev libxss-dev libwayland-dev libwayland-bin \
+            wayland-protocols libxkbcommon-dev libdecor-0-dev libasound2-dev \
+            libpulse-dev libpipewire-0.3-dev
+
+      - name: Configure test build
+        run: |
+          cmake -S . -B out/build/guest-frame-tests -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DREXGLUE_BUILD_TESTS=ON \
+            -DREXGLUE_ENABLE_TRACY=OFF \
+            -DREXGLUE_USE_VULKAN=ON
+
+      - name: Build unit tests
+        run: cmake --build out/build/guest-frame-tests --target unit_tests --parallel 2
+
+      - name: Run guest frame tests
+        run: |
+          ctest --test-dir out/build/guest-frame-tests -R 'guest_call_stack' --output-on-failure
