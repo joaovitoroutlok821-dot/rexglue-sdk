@@ -16,9 +16,10 @@ inline std::ostream& operator<<(std::ostream& stream, unsigned __int128 value) {
 
 inline std::ostream& operator<<(std::ostream& stream, __int128 value) {
   const bool negative = value < 0;
-  unsigned __int128 magnitude =
-      negative ? static_cast<unsigned __int128>(-(value + 1)) + 1
-               : static_cast<unsigned __int128>(value);
+  unsigned __int128 magnitude = static_cast<unsigned __int128>(value);
+  if (negative) {
+    magnitude = static_cast<unsigned __int128>(-(value + 1)) + 1;
+  }
   char buffer[41];
   char* end = buffer + sizeof(buffer);
   char* current = end;
