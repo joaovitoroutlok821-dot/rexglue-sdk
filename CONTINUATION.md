@@ -126,3 +126,12 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - O parser hexadecimal e as conversões integrais continuam usando `std::from_chars`.
 - Próximo passo: aguardar lint e build Android ARM64 no commit acima; corrigir somente o próximo erro confirmado.
 - Status: build completo ainda não aprovado; artefato SDK ainda não foi gerado.
+
+
+## Atualização — fallback de conversão de relógios C++23 no Android (2026-11-11)
+- Build anterior: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/42943816809
+- A correção do parser numérico foi compilada sem erros nos pontos que chegaram a ser construídos; o build avançou até cerca de 423/790 tarefas.
+- O novo erro apareceu em `include/rex/chrono/chrono.h`: a libc++ do Android NDK não declara `std::chrono::clock_time_conversion`, embora o código do projeto precise especializar esse template.
+- O arquivo já continha um fallback equivalente para Apple libc++. O commit `25ad94540c9c556a3b9fe63ab6c5c3ebb1764a20` estendeu o mesmo fallback para Android (`__ANDROID__`), mantendo as conversões WinSystemClock/XSystemClock existentes.
+- Próximo passo: validar lint e build Android ARM64 neste commit; depois tratar o próximo erro real.
+- Status: build integral ainda não concluído e nenhum artefato SDK foi publicado.
