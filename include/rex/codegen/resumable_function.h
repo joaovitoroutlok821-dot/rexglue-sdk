@@ -27,8 +27,10 @@ inline std::optional<rex::ppc::ResumableProgram> CompileResumableFunction(
   }
 
   const Block& block = function.blocks().front();
-  if (block.base != function.base() || block.size != function.size() ||
-      (block.size & 3) != 0) {
+  const bool matches_function_range =
+      block.base == function.base() && block.size == function.size();
+  const bool has_aligned_size = (block.size & 3) == 0;
+  if (!matches_function_range || !has_aligned_size) {
     return std::nullopt;
   }
 
@@ -41,8 +43,7 @@ inline std::optional<rex::ppc::ResumableProgram> CompileResumableFunction(
   words.reserve(expected_count);
   for (size_t index = 0; index < decoded.size(); ++index) {
     const auto* instruction = decoded[index];
-    const uint32_t expected_address =
-        block.base + static_cast<uint32_t>(index * sizeof(uint32_t));
+    const uint32_t expected_address = block.base + static_cast<uint32_t>(index * 4);
     if (!instruction || instruction->address != expected_address)
       return std::nullopt;
     words.push_back(static_cast<uint32_t>(instruction->code));
