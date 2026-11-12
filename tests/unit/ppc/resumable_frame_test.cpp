@@ -328,9 +328,9 @@ TEST_CASE("FunctionNode resumable adapter rejects multiple blocks",
   constexpr uint32_t block_size = 2 * sizeof(uint32_t);
   constexpr uint32_t function_size = 4 * sizeof(uint32_t);
   FunctionNode function(function_address, function_size, FunctionAuthority::DISCOVERED);
-  function.discover({{function_address, block_size},
-                     {function_address + block_size, block_size}},
-                    std::move(decoded), {});
+  function.discover(
+      {{function_address, block_size}, {function_address + block_size, block_size}},
+      std::move(decoded), {});
   function.seal();
 
   CHECK_FALSE(rex::codegen::CompileResumableFunction(function).has_value());
