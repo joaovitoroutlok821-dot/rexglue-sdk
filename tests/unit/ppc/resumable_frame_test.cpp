@@ -209,9 +209,7 @@ TEST_CASE("Resumable PPC subset rejects unsupported instructions and branches",
   CHECK_FALSE(invalid_branch_program.has_value());
 }
 
-
-TEST_CASE("Resumable PPC subset sign-extends addi immediates",
-          "[ppc][resumable_program]") {
+TEST_CASE("Resumable addi sign extension", "[ppc][resumable_program]") {
   constexpr uint32_t function_address = 0x82005000;
   // addi r5, r0, -7
   // blr
