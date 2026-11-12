@@ -625,3 +625,11 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Lint & Format Check #147 passou no commit `f068f6bb8ce69567a3d410e9ef3f992d97b92c9f`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43265585017
 - O Guest Frame Prototype Unit Tests #40, no mesmo commit, está em andamento. Na última consulta, o job ainda executava o checkout do código e submódulos; build e CTest ainda não começaram: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43265585024
 - O #40 é a validação que deve ser usada para confirmar os testes de limites de endereço e a correção de formatação no mesmo commit. Os runs #38 e #39 pertencem a commits anteriores e não substituem essa confirmação.
+
+### Guest Frame Unit Tests #40 aprovado — 2026-11-12
+- Guest Frame Prototype Unit Tests #40 passou no commit `f068f6bb8ce69567a3d410e9ef3f992d97b92c9f`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43265585024
+- Todos os passos do job passaram: checkout e submódulos, dependências, verificação C++23, configuração CMake, build dos testes unitários e execução do CTest.
+- Lint & Format Check #147 também passou no mesmo commit: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43265585017
+- Portanto, a correção de limite de endereços e os testes associados estão validados pelo CI.
+- Próxima etapa: desenhar uma comparação diferencial de semântica PPC em uma fixture pequena. O lado de referência deve calcular o resultado esperado conforme as regras da ISA (ou usar um interpretador de referência independente); o lado experimental executará o `ResumableProgram`. Comparar estado observável após execução completa e após yield/serialize/deserialize/resume.
+- Limite importante: essa fixture ainda não provará equivalência com o C++ real emitido por `FunctionNode::emitCpp()`. Para isso será necessário executar o código gerado com contexto/ambiente real ou um harness equivalente e comparar resultados. Não declarar equivalência do codegen nem integrar ao runtime/APK com base apenas na fixture.
