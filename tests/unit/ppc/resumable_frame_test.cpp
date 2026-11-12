@@ -131,8 +131,8 @@ TEST_CASE("Resumable frame rejects unsupported versions and malformed payloads",
 
   auto trailing_data = *bytes;
   trailing_data.push_back(0);
-  const auto trailing_result =
-      ResumableFrame::Deserialize(std::span<const uint8_t>(trailing_data));
+  const auto trailing_result = ResumableFrame::Deserialize(
+      std::span<const uint8_t>(trailing_data));
   CHECK_FALSE(trailing_result.has_value());
 
   frame.resume_pc = 0;
