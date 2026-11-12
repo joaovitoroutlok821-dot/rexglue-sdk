@@ -330,3 +330,12 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - SEH, exceções C++, setjmp/longjmp, mid-asm hooks, imports com efeitos colaterais, callbacks/APCs e sincronização concorrente exigem protocolos próprios.
 - Fibers Android ARM64 permanecem úteis para pausa cooperativa intra-processo, mas não são o formato de persistência.
 - Nenhuma alteração foi feita no caminho de execução normal nem no app Resident Evil. Nenhuma funcionalidade Save State foi declarada pronta.
+
+
+### 2026-11-11 — Restrições do primeiro protótipo de codegen
+- `RecompilerConfig` permite localizar registradores em variáveis locais: `ctrAsLocalVariable`, `xerAsLocalVariable`, `reservedRegisterAsLocalVariable`, `crRegistersAsLocalVariables`, `nonArgumentRegistersAsLocalVariables` e `nonVolatileRegistersAsLocalVariables`.
+- Para uma variante resumível inicial, todas essas opções devem ser forçadas a `false`, fazendo GPR/FPR/VMX/CR/CTR/XER/reserved permanecerem em `PPCContext`.
+- Isso ainda não resolve os temporários internos do gerador (`temp`, `vTemp`, `env`, `ea`) nem valores de expressão. A transformação deve garantir que nenhum desses valores permaneça vivo entre yields; caso contrário, precisam de slots explícitos no frame.
+- O primeiro escopo deve rejeitar funções com SEH, mid-asm hooks, setjmp/longjmp, jump tables não suportadas, chamadas/imports e instruções sem lowering resumível. Inicialmente testar apenas aritmética + branch condicional/incondicional dentro de uma função, com estado explícito no frame.
+- Os campos do frame devem ser serializados por formato versionado e campos definidos, não por dump bruto de `PPCContext`: há padding/alinhamento e campos como FPSCR carregam estado de controle do host. O formato persistente precisa representar os bits guest e reconstruir o estado host ao restaurar.
+- Decisão: o primeiro teste de equivalência deve comparar uma execução de referência e uma execução resumível de uma função sintética sem chamadas, interrompida entre blocos básicos. Só após isso adicionar chamadas e imports com protocolo explícito.
