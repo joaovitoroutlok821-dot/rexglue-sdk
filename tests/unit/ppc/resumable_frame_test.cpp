@@ -304,7 +304,6 @@ TEST_CASE("FunctionNode resumable adapter", "[codegen][ppc][resumable_program]")
   CHECK(frame.ctr == 0);
 }
 
-
 TEST_CASE("FunctionNode resumable adapter rejects multiple blocks",
           "[codegen][ppc][resumable_program]") {
   constexpr uint32_t function_address = 0x82008000;
@@ -337,7 +336,7 @@ TEST_CASE("FunctionNode resumable adapter rejects multiple blocks",
   CHECK_FALSE(rex::codegen::CompileResumableFunction(function).has_value());
 }
 
-TEST_CASE("FunctionNode resumable adapter rejects resolved calls",
+TEST_CASE("FunctionNode resumable adapter rejects call edges",
           "[codegen][ppc][resumable_program]") {
   constexpr uint32_t function_address = 0x82009000;
   constexpr std::array<uint32_t, 4> words = {
