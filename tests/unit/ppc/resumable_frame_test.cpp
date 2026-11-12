@@ -138,11 +138,13 @@ TEST_CASE("Resumable frame rejects unsupported versions and malformed payloads",
   CHECK_FALSE(trailing_result.has_value());
 
   frame.resume_pc = 0;
-  CHECK_FALSE(frame.Serialize().has_value());
+  const auto invalid_pc_snapshot = frame.Serialize();
+  CHECK_FALSE(invalid_pc_snapshot.has_value());
 
   frame.resume_pc = kEntry;
   frame.cr[0] = 0x10;
-  CHECK_FALSE(frame.Serialize().has_value());
+  const auto invalid_cr_snapshot = frame.Serialize();
+  CHECK_FALSE(invalid_cr_snapshot.has_value());
 }
 
 
@@ -178,8 +180,8 @@ TEST_CASE("Resumable PPC subset executes and resumes decoded guest instructions"
   REQUIRE(snapshot.has_value());
   frame = {};
 
-  auto restored = rex::ppc::ResumableFrame::Deserialize(
-      std::span<const uint8_t>(*snapshot));
+  const std::span<const uint8_t> snapshot_span(*snapshot);
+  auto restored = rex::ppc::ResumableFrame::Deserialize(snapshot_span);
   REQUIRE(restored.has_value());
 
   auto result = rex::ppc::ResumableRunResult::Yielded;
@@ -195,13 +197,15 @@ TEST_CASE("Resumable PPC subset rejects unsupported instructions and branches",
           "[ppc][resumable_frame][resumable_program]") {
   constexpr uint32_t function_address = 0x82004000;
   constexpr std::array<uint32_t, 1> unsupported = {0x60000000};  // ori/nop
-  CHECK_FALSE(
-      rex::ppc::ResumableProgram::Compile(function_address, unsupported).has_value());
+  const auto unsupported_program =
+      rex::ppc::ResumableProgram::Compile(function_address, unsupported);
+  CHECK_FALSE(unsupported_program.has_value());
 
   constexpr std::array<uint32_t, 2> branch_outside = {
       0x4200FFFC,  // bdnz to an address before the function
       0x4E800020,
   };
-  CHECK_FALSE(
-      rex::ppc::ResumableProgram::Compile(function_address, branch_outside).has_value());
+  const auto invalid_branch_program =
+      rex::ppc::ResumableProgram::Compile(function_address, branch_outside);
+  CHECK_FALSE(invalid_branch_program.has_value());
 }
