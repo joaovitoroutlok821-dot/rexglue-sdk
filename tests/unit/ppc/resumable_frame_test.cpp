@@ -487,7 +487,6 @@ TEST_CASE("Resumable PPC compiler validates guest address boundaries", "[ppc][re
   CHECK(program->Run(frame, 1) == rex::ppc::ResumableRunResult::Completed);
 }
 
-
 TEST_CASE("FunctionNode emits synthetic PPC function with materialized locals",
           "[codegen][ppc][resumable_program]") {
   constexpr uint32_t function_address = 0x8200B000;
@@ -515,8 +514,7 @@ TEST_CASE("FunctionNode emits synthetic PPC function with materialized locals",
 
   const std::string generated = function.emitCpp(emit_context);
 
-  CHECK(generated.find("DEFINE_REX_FUNC(test_generated_resumable_candidate)") !=
-        std::string::npos);
+  CHECK(generated.find("DEFINE_REX_FUNC(test_generated_resumable_candidate)") != std::string::npos);
   CHECK(generated.find("PPCRegister r11{};") != std::string::npos);
   CHECK(generated.find("r11.s64 = 1;") != std::string::npos);
   CHECK(generated.find("return;") != std::string::npos);
