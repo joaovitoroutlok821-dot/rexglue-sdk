@@ -683,3 +683,19 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Lint & Format Check #158 passou: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43273682476
 - Guest Frame Prototype Unit Tests #44 foi iniciado para esse commit: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43273682433. Na última consulta, ainda estava em checkout de código/submódulos; o build e CTest ainda não haviam começado. Os jobs #42/#43, dos commits intermediários, também continuavam sem conclusão. Portanto, o novo teste de emissão AOT ainda não está validado pela CI.
 - A documentação deve considerar como código mais recente o commit `22eb6dd586d56eb16e1365b8c62756bfa2f27aa8`; a atualização deste registro é posterior.
+
+
+### Guest Frame Unit Tests #44 aprovado e revisão do harness AOT — 2026-11-12
+
+- Guest Frame Prototype Unit Tests #44 concluiu com sucesso no commit `22eb6dd586d56eb16e1365b8c62756bfa2f27aa8`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43273682433
+- Lint & Format Check #158 também passou no mesmo commit: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43273682476
+- O Lint & Format Check #159 passou no commit de documentação anterior `3495efd28e22248a54ce6c69a818a07401462ef4`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43273840119
+- Portanto, o teste textual que chama o `FunctionNode::emitCpp()` real está compilado e executado pela suíte. Ele ainda verifica somente o texto gerado, não compila/executa a função C++ emitida.
+- Revisão do harness:
+  - `PPCFunc` é um ponteiro para função com assinatura `void(PPCContext& ctx, uint8_t* base)`, declarado em `include/rex/ppc/func.h`.
+  - `PPCContext` e os aliases de registradores estão em `include/rex/ppc/context.h`.
+  - O emissor gera `DEFINE_REX_FUNC(nome)`; a definição/expansão exata desse macro e o conjunto completo de includes/helpers necessários ainda precisam ser localizados antes de montar uma unidade de compilação. Não presumir que `func.h` sozinho seja suficiente.
+  - O fixture atual usa `addi r11, r0, 1; blr` e ativa `nonArgumentRegistersAsLocalVariables`; o valor de r11 é mantido em variável local C++, e não deve ser confundido com `ctx.r11`.
+  - `tests/unit/CMakeLists.txt` já liga `unit_tests` a `rexcodegen` e `rexruntime`, mas isso não resolve automaticamente a compilação de uma string gerada em tempo de execução. A estratégia de geração pré-build ou fonte fixture gerada precisa ser escolhida com cuidado.
+- Próximo passo: rastrear a definição de `DEFINE_REX_FUNC`, prologue e dependências de helpers/macros nos templates e fontes do SDK; então criar uma fixture C++ gerada em etapa explícita do build (ou outro mecanismo reprodutível), compilá-la como parte do alvo de testes e invocá-la com `PPCContext` real. Comparar os registradores observáveis com a semântica PPC de referência.
+- Não alterar o codegen de produção, dispatcher, runtime ou APK funcional do Resident Evil nesta etapa. Não suspender função C++ arbitrariamente. Save State completo continua não implementado.
