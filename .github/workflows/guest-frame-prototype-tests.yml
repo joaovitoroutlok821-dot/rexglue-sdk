@@ -7,9 +7,11 @@ on:
       - save-state-frame-prototype
     paths:
       - 'include/rex/ppc/guest_call_stack.h'
+      - 'include/rex/ppc/resumable_frame.h'
       - 'include/rex/string/numeric.h'
       - 'include/rex/chrono/chrono.h'
       - 'tests/unit/ppc/guest_call_stack_test.cpp'
+      - 'tests/unit/ppc/resumable_frame_test.cpp'
       - 'tests/unit/catch2_compat.h'
       - 'tests/unit/CMakeLists.txt'
       - 'CMakeLists.txt'
@@ -62,4 +64,4 @@ jobs:
 
       - name: Run guest frame tests
         run: |
-          ctest --test-dir out/build/guest-frame-tests -R 'guest_call_stack' --output-on-failure
+          ctest --test-dir out/build/guest-frame-tests -R 'guest_call_stack|resumable_frame' --output-on-failure
