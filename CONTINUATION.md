@@ -611,3 +611,12 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Os novos workflows disparados por esses commits ainda precisam terminar. Não considerar os novos casos aprovados até verificar Guest Frame Unit Tests e Lint.
 - Próxima etapa após CI verde: construir uma fixture de referência controlada para comparar resultados de execução do subconjunto resumível com semântica PPC de referência. Isso ainda não equivale a executar o C++ emitido por `FunctionNode::emitCpp()`; qualquer comparação deve explicitar esse limite. Não integrar ao runtime nem ao APK funcional do Resident Evil nesta fase.
 - Estado do projeto: o adaptador e executor continuam experimentais e limitados a `addi`, `bdnz` e `blr`. Não existe ainda Save State completo, persistência de memória guest/threads/kernel ou restauração após fechar e reabrir o aplicativo.
+
+### Ajuste de formatação do teste de limites — 2026-11-12
+- Lint & Format Check #145 falhou somente no clang-format do novo caso de teste de limites, em `tests/unit/ppc/resumable_frame_test.cpp`; não chegou a indicar falha de compilação ou semântica.
+- A saída do clang-format apontou uma linha em branco excedente e a assinatura do `TEST_CASE`, que cabe em uma única linha.
+- Corrigido o espaçamento e colocada a assinatura do teste em uma linha.
+- Commit da correção: `f068f6bb8ce69567a3d410e9ef3f992d97b92c9f`.
+- Lint #144 do header `resumable_program.h` passou: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43265411067
+- Guest Frame Unit Tests #38 (commit `cb9fedb...`) e #39 (commit `b5de52c...`) ainda estavam em andamento na última consulta. O lint #145 pertence ao commit anterior e foi substituído pela correção acima.
+- Verificar as novas execuções disparadas pelo commit `f068f6b...` antes de declarar a etapa validada.
