@@ -633,3 +633,12 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Portanto, a correção de limite de endereços e os testes associados estão validados pelo CI.
 - Próxima etapa: desenhar uma comparação diferencial de semântica PPC em uma fixture pequena. O lado de referência deve calcular o resultado esperado conforme as regras da ISA (ou usar um interpretador de referência independente); o lado experimental executará o `ResumableProgram`. Comparar estado observável após execução completa e após yield/serialize/deserialize/resume.
 - Limite importante: essa fixture ainda não provará equivalência com o C++ real emitido por `FunctionNode::emitCpp()`. Para isso será necessário executar o código gerado com contexto/ambiente real ou um harness equivalente e comparar resultados. Não declarar equivalência do codegen nem integrar ao runtime/APK com base apenas na fixture.
+
+### Comparação diferencial inicial do executor PPC — 2026-11-12
+- Após Guest Frame Unit Tests #40 e Lint #147 passarem, foi adicionada uma referência independente, escrita diretamente sobre as palavras PPC da fixture, para validar o subconjunto suportado.
+- Novo teste: `Resumable PPC execution matches independent reference across save points`.
+- A fixture contém `addi r3,r0,-2`, `addi r3,r3,3`, `bdnz` relativo e `blr`; testa CTR inicial 1, 2, 5 e 17.
+- O caminho de referência interpreta as palavras PPC sem chamar `ResumableProgram`; o caminho resumível executa em orçamento de duas instruções, serializa/desserializa em cada yield e compara GPRs, CTR e PC final.
+- Commit do teste: `635fdf3772eb807f81c1905384ebd481d1a0fe2d`.
+- Este é um teste diferencial de uma fixture pequena e de um subconjunto PPC restrito. Não compara com o C++ emitido por `FunctionNode::emitCpp()`, nem valida calls, FPR/VMX, memória guest, threads ou o runtime do jogo.
+- Os workflows de CI disparados pelo commit ainda precisam passar antes de considerar a fixture validada.
