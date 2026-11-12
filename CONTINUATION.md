@@ -362,3 +362,14 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Registrado o novo teste em `tests/unit/CMakeLists.txt` e no workflow `.github/workflows/guest-frame-prototype-tests.yml`.
 - Nenhuma alteração foi feita em `FunctionNode::emitCpp()`, nos builders normais, no dispatcher ou no runtime. O caminho padrão e o APK funcional do RECVX permanecem fora desta experiência.
 - Próximo passo após CI verde: ligar o modelo a um emissor experimental de blocos básicos, inicialmente apenas aritmética e branch interno, garantindo que cada valor vivo entre blocos seja armazenado no frame. O teste seguinte deverá executar código gerado de verdade e comparar com o caminho C++ normal antes de ampliar a cobertura.
+
+
+### Ajustes de validação do frame — 2026-11-11
+
+- A primeira execução do Lint identificou apenas divergências de formatação no novo header e no teste; os trechos foram ajustados.
+- O Lint & Format Check #101 passou no commit `ab8c60ba9b6546430014e09ec4f859f13b534906`.
+- Após simplificar mais uma asserção longa do teste, o commit atual é `57b5aacf853f6ff6ed58e21ba24641b40407f34f`.
+- No momento desta atualização, estão em execução:
+  - Guest Frame Prototype Unit Tests #14: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43141340967
+  - Lint & Format Check #102: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43141341027
+- A aprovação do Lint #101 valida formatação do estado anterior ao último ajuste do teste; o resultado definitivo do commit atual depende dos workflows #14 e #102.
