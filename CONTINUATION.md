@@ -525,3 +525,10 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
   - Lint & Format Check #129: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43150314384 — em andamento na consulta.
 - Execuções anteriores de teste #28 e #29 também apareciam em andamento; verificar o resultado mais recente antes de considerar o adaptador validado.
 - Não há ainda confirmação de equivalência com `emitCpp()`; este adaptador apenas extrai um subconjunto restrito de instruções decodificadas de um `FunctionNode` selado.
+
+
+### Resultado atualizado do CI — 2026-11-12
+- Lint & Format Check #130 passou no commit `b68b4fa1d42e32821f87beeb52406251b2a5375b`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43150320605
+- O lint confirmou formatação C/C++, pins Vulkan e testes de scripts.
+- Guest Frame Prototype Unit Tests #31, mesmo commit, ainda estava em execução na última consulta: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43150320660
+- O job ainda estava no checkout do repositório/submódulos; compilação e CTest ainda não haviam começado. A ponte FunctionNode só estará validada após o #31 concluir com sucesso.
