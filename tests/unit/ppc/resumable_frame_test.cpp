@@ -241,7 +241,7 @@ TEST_CASE("Resumable PPC subset handles CTR one and zero instruction budget",
   // blr
   constexpr std::array<uint32_t, 3> code = {
       0x38600000,
-      0x4200FFF8,
+      0x4200FFFC,
       0x4E800020,
   };
 
