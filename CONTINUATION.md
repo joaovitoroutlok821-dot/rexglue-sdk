@@ -376,3 +376,18 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 
 
 - O Lint #102 apontou mais uma quebra de linha na chamada usada pelo teste de payload truncado/excedente. O teste foi ajustado no commit `5fcb58abf9e5efaa29f8672df2cf61d91129fe5e`; os workflows disparados por esse commit são a validação definitiva pendente.
+
+
+## 2026-11-11 — CI do frame resumível e correção final de formatação
+
+- Guest Frame Prototype Unit Tests #15 passou: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43141460692
+  - Commit validado: `5fcb58abf9e5efaa29f8672df2cf61d91129fe5e`.
+  - O build dos testes e a execução dos testes de frame terminaram com sucesso.
+- Lint & Format Check #104 e #105 falharam no mesmo ponto: formatação da chamada `ResumableFrame::Deserialize` em `tests/unit/ppc/resumable_frame_test.cpp:134`. Não foi reportado erro de compilação/teste nessa execução; o bloqueio dos dois runs foi o clang-format 20.1.8.
+- Correção aplicada no teste, movendo a quebra de linha para depois do operador de atribuição:
+  `const auto trailing_result =`
+  seguida da chamada `ResumableFrame::Deserialize(...)`.
+- Commit da correção: `83384fc508847f533dce25089e6f4409e20642cc`.
+- Aguardar os novos workflows de lint e Guest Frame Unit Tests disparados por esse commit. Ainda não declarar o Lint aprovado até ver o resultado.
+- Limite técnico permanece: os testes verdes #15 exercitam o frame versionado e uma fixture manual C++, não código PPC emitido por `FunctionNode`, nem restauração real entre processos. Não é Save State completo e não deve ser integrado ao APK funcional do RECVX ainda.
+- Próxima etapa após CI verde: estudar e prototipar, em modo opt-in isolado, a emissão de blocos básicos como estados explícitos para uma função PPC sintética, sem alterar o codegen padrão/runtime nem o jogo funcional.
