@@ -532,3 +532,14 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - O lint confirmou formatação C/C++, pins Vulkan e testes de scripts.
 - Guest Frame Prototype Unit Tests #31, mesmo commit, ainda estava em execução na última consulta: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43150320660
 - O job ainda estava no checkout do repositório/submódulos; compilação e CTest ainda não haviam começado. A ponte FunctionNode só estará validada após o #31 concluir com sucesso.
+
+
+## 2026-11-12 — Correção do include do adaptador FunctionNode
+
+- Guest Frame Prototype Unit Tests #31 falhou durante **Build unit tests**, antes de executar CTest.
+- O erro confirmado foi: `include/rex/codegen/resumable_function.h:11:10: fatal error: 'rex/codegen/ppc/instruction.h' file not found`.
+- A inspeção do repositório confirmou que a definição de `rex::codegen::ppc::Instruction` está em `src/codegen/ppc/instruction.h`, não em `include/rex/codegen/ppc/instruction.h`. O alvo `unit_tests` inclui `${PROJECT_SOURCE_DIR}/src`.
+- Corrigido o include do adaptador para `"codegen/ppc/instruction.h"`, usando a raiz `src` já presente nos diretórios de include do teste.
+- Commit da correção: `495a203d6ad49deb5dec616e88c20216ac57607f`.
+- Próximo passo: aguardar e verificar o novo Guest Frame Prototype Unit Tests e o Lint disparados por esse commit. A falha anterior foi de compilação do include; os testes do adaptador ainda não foram executados.
+- O adaptador continua experimental e restrito. Nenhuma alteração foi feita no codegen normal, runtime ou APK funcional do Resident Evil; não é Save State completo.
