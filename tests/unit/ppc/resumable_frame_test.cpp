@@ -208,3 +208,57 @@ TEST_CASE("Resumable PPC subset rejects unsupported instructions and branches",
       rex::ppc::ResumableProgram::Compile(function_address, branch_outside);
   CHECK_FALSE(invalid_branch_program.has_value());
 }
+
+
+TEST_CASE("Resumable PPC subset sign-extends addi immediates",
+          "[ppc][resumable_program]") {
+  constexpr uint32_t function_address = 0x82005000;
+  // addi r5, r0, -7
+  // blr
+  constexpr std::array<uint32_t, 2> code = {
+      0x38A0FFF9,
+      0x4E800020,
+  };
+
+  auto program = rex::ppc::ResumableProgram::Compile(function_address, code);
+  REQUIRE(program.has_value());
+
+  rex::ppc::ResumableFrame frame;
+  frame.function_address = function_address;
+  frame.resume_pc = function_address;
+
+  CHECK(program->Run(frame, 1) == rex::ppc::ResumableRunResult::Yielded);
+  CHECK(frame.gpr[5] == static_cast<uint64_t>(-7));
+  CHECK(frame.resume_pc == function_address + 4);
+  CHECK(program->Run(frame, 1) == rex::ppc::ResumableRunResult::Completed);
+}
+
+TEST_CASE("Resumable PPC subset handles CTR one and zero instruction budget",
+          "[ppc][resumable_program]") {
+  constexpr uint32_t function_address = 0x82006000;
+  // addi r3, r0, 0
+  // bdnz back to the first instruction
+  // blr
+  constexpr std::array<uint32_t, 3> code = {
+      0x38600000,
+      0x4200FFF8,
+      0x4E800020,
+  };
+
+  auto program = rex::ppc::ResumableProgram::Compile(function_address, code);
+  REQUIRE(program.has_value());
+
+  rex::ppc::ResumableFrame frame;
+  frame.function_address = function_address;
+  frame.resume_pc = function_address;
+  frame.ctr = 1;
+
+  CHECK(program->Run(frame, 0) == rex::ppc::ResumableRunResult::Yielded);
+  CHECK(frame.resume_pc == function_address);
+  CHECK(frame.ctr == 1);
+
+  CHECK(program->Run(frame, 2) == rex::ppc::ResumableRunResult::Yielded);
+  CHECK(frame.ctr == 0);
+  CHECK(frame.resume_pc == function_address + 8);
+  CHECK(program->Run(frame, 1) == rex::ppc::ResumableRunResult::Completed);
+}
