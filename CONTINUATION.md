@@ -403,3 +403,16 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
   - Lint & Format Check #108: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43143579218
 - No momento desta atualização, ambos estavam na fila. Não declarar lint/testes #17 aprovados até consultar as conclusões.
 - O Guest Frame Unit Tests #15 havia passado no commit anterior `5fcb58ab...`; essa aprovação não valida automaticamente o commit novo.
+
+
+## 2026-11-12 — Correção estrutural da chamada span no teste ResumableFrame
+
+- O Lint & Format Check #109 confirmou que a disposição anterior ainda falhava no clang-format 20.1.8, na linha 134 de `tests/unit/ppc/resumable_frame_test.cpp`. A falha era exclusivamente de formatação.
+- Para evitar novas tentativas de quebra da mesma chamada, o teste agora declara primeiro `const std::span<const uint8_t> trailing_span(trailing_data);` e passa essa variável a `ResumableFrame::Deserialize(trailing_span)`.
+- Commit da alteração: `cd141103499e2e797fdeb36f0478c9d1c131d4a8`.
+- Novas validações do commit:
+  - Guest Frame Prototype Unit Tests #18: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43144342660
+  - Lint & Format Check #110: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43144342639
+- As duas execuções estavam em andamento na última consulta. Consultar seus resultados antes de considerar o ajuste validado.
+- O run #17 ainda estava em andamento e pertence ao commit anterior; não substitui a validação do commit #18.
+- O frame continua sendo um protótipo parcial, e a fixture de retomada continua manual em C++: ainda não há emissão PPC resumível real nem Save State completo. Não alterar o caminho padrão nem integrar ao APK funcional do RECVX nesta fase.
