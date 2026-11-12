@@ -11,6 +11,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <rex/ppc/resumable_frame.h>
+#include <rex/ppc/resumable_program.h>
 
 namespace {
 
@@ -141,4 +142,65 @@ TEST_CASE("Resumable frame rejects unsupported versions and malformed payloads",
   frame.resume_pc = kEntry;
   frame.cr[0] = 0x10;
   CHECK_FALSE(frame.Serialize().has_value());
+}
+
+
+TEST_CASE("Resumable PPC subset executes and resumes decoded guest instructions",
+          "[ppc][resumable_frame][resumable_program]") {
+  constexpr uint32_t function_address = 0x82003000;
+  // addi r3, r0, 0
+  // addi r3, r3, 1
+  // bdnz back to the second instruction
+  // blr
+  constexpr std::array<uint32_t, 4> code = {
+      0x38600000,
+      0x38630001,
+      0x4200FFFC,
+      0x4E800020,
+  };
+
+  auto program = rex::ppc::ResumableProgram::Compile(function_address, code);
+  REQUIRE(program.has_value());
+  CHECK(program->instruction_count() == code.size());
+
+  rex::ppc::ResumableFrame frame;
+  frame.function_address = function_address;
+  frame.resume_pc = function_address;
+  frame.ctr = 5;
+
+  CHECK(program->Run(frame, 2) == rex::ppc::ResumableRunResult::Yielded);
+  CHECK(frame.gpr[3] == 1);
+  CHECK(frame.ctr == 5);
+  CHECK(frame.resume_pc == function_address + 8);
+
+  auto snapshot = frame.Serialize();
+  REQUIRE(snapshot.has_value());
+  frame = {};
+
+  auto restored = rex::ppc::ResumableFrame::Deserialize(
+      std::span<const uint8_t>(*snapshot));
+  REQUIRE(restored.has_value());
+
+  auto result = rex::ppc::ResumableRunResult::Yielded;
+  while (result == rex::ppc::ResumableRunResult::Yielded)
+    result = program->Run(*restored, 2);
+
+  REQUIRE(result == rex::ppc::ResumableRunResult::Completed);
+  CHECK(restored->gpr[3] == 5);
+  CHECK(restored->ctr == 0);
+}
+
+TEST_CASE("Resumable PPC subset rejects unsupported instructions and branches",
+          "[ppc][resumable_frame][resumable_program]") {
+  constexpr uint32_t function_address = 0x82004000;
+  constexpr std::array<uint32_t, 1> unsupported = {0x60000000};  // ori/nop
+  CHECK_FALSE(
+      rex::ppc::ResumableProgram::Compile(function_address, unsupported).has_value());
+
+  constexpr std::array<uint32_t, 2> branch_outside = {
+      0x4200FFFC,  // bdnz to an address before the function
+      0x4E800020,
+  };
+  CHECK_FALSE(
+      rex::ppc::ResumableProgram::Compile(function_address, branch_outside).has_value());
 }
