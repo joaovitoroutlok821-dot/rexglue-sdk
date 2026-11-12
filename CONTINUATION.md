@@ -582,3 +582,15 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Guest Frame Prototype Unit Tests #36, no commit 452f893..., foi disparado e estava queued na última consulta: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43262590249. A validação do lint para esse commit ainda precisa ser confirmada.
 - O teste de chamada usa CallTarget::unresolved() como CallEdge registrada; comprova rejeição de aresta de chamada, não de chamada resolvida. O teste foi nomeado “rejects call edges” para refletir isso.
 - Nenhuma mudança no codegen normal, dispatcher, runtime ou APK do Resident Evil. O adaptador segue experimental e restrito; Save State completo ainda não existe.
+
+
+## 2026-11-12 — Correção final do alinhamento do teste multi-bloco
+
+- O Lint #140 mostrou que o clang-format 20.1.8 espera o primeiro argumento de FunctionNode::discover() agrupado na mesma linha até o limite de coluna e os argumentos seguintes alinhados como continuação. O ajuste anterior ainda deixava a quebra no lugar errado.
+- Aplicada a forma de chamada com o primeiro argumento agregado na primeira linha e std::move(decoded) alinhado como argumento seguinte.
+- Commit de código: 4597e071feb750ba8552219024ba3c151b0e9a84.
+- Workflows desse commit:
+  - Guest Frame Prototype Unit Tests #37: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43262855538 — em andamento na última consulta.
+  - Lint & Format Check #142: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43262855562 — em andamento na última consulta.
+- O teste unitário #35 já havia passado, validando compilação e execução dos dois testes negativos; #37 valida o ajuste de formatação mais recente.
+- Nenhuma mudança no runtime, dispatcher, codegen normal ou APK funcional do Resident Evil. O adaptador segue experimental e Save State completo ainda não existe.
