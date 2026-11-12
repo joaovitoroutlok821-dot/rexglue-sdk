@@ -570,3 +570,15 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Guest Frame Prototype Unit Tests do commit anterior 4faf262... ainda estava em compilação na última consulta: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43260371990. Esse run não inclui as correções posteriores; aguardar a execução disparada pelo commit 5f1eca42... para validar o estado atual.
 - Lint anterior falhou somente por clang-format: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43260372016. O commit 5f1eca42... contém a correção, mas o novo lint ainda precisa ser confirmado.
 - O adaptador permanece experimental, limitado a funções de bloco único sem chamadas, e não executa o C++ emitido por FunctionNode::emitCpp(). Nenhuma alteração no runtime, dispatcher ou APK funcional do Resident Evil.
+
+
+## 2026-11-12 — Unit tests verdes e novo ajuste de clang-format
+
+- Guest Frame Prototype Unit Tests #33 (commit 4faf262...) concluiu com sucesso: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43260371990.
+- Guest Frame Prototype Unit Tests #34 (commit ca1b394...) concluiu com sucesso: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43260993663.
+- Guest Frame Prototype Unit Tests #35 (commit 5f1eca4...) concluiu com sucesso: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43261069290. Os dois testes negativos foram compilados e executados com sucesso.
+- O Lint #139 revelou que o alinhamento de FunctionNode::discover() ainda não correspondia ao clang-format 20.1.8: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43261145200. A mensagem apontou apenas a chamada em tests/unit/ppc/resumable_frame_test.cpp, linhas 331–332.
+- Corrigido o alinhamento colocando o primeiro argumento na mesma linha da chamada. Commit: 452f89320683c4a6cc1c64249f5fcfb88872831e.
+- Guest Frame Prototype Unit Tests #36, no commit 452f893..., foi disparado e estava queued na última consulta: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43262590249. A validação do lint para esse commit ainda precisa ser confirmada.
+- O teste de chamada usa CallTarget::unresolved() como CallEdge registrada; comprova rejeição de aresta de chamada, não de chamada resolvida. O teste foi nomeado “rejects call edges” para refletir isso.
+- Nenhuma mudança no codegen normal, dispatcher, runtime ou APK do Resident Evil. O adaptador segue experimental e restrito; Save State completo ainda não existe.
