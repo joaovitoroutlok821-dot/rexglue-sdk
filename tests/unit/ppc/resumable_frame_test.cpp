@@ -369,3 +369,24 @@ TEST_CASE("FunctionNode resumable adapter rejects call edges",
 
   CHECK_FALSE(rex::codegen::CompileResumableFunction(*function).has_value());
 }
+
+
+TEST_CASE("Resumable PPC compiler validates guest address boundaries",
+          "[ppc][resumable_program]") {
+  constexpr std::array<uint32_t, 1> return_instruction = {0x4E800020};
+  constexpr std::array<uint32_t, 2> two_instructions = {0x4E800020, 0x4E800020};
+
+  CHECK_FALSE(rex::ppc::ResumableProgram::Compile(0, return_instruction).has_value());
+  CHECK_FALSE(rex::ppc::ResumableProgram::Compile(0x82000002, return_instruction).has_value());
+  CHECK_FALSE(rex::ppc::ResumableProgram::Compile(0xFFFFFFFC, two_instructions).has_value());
+
+  // The final aligned guest instruction address is valid even though the
+  // exclusive end of the function range is 2^32.
+  auto program = rex::ppc::ResumableProgram::Compile(0xFFFFFFFC, return_instruction);
+  REQUIRE(program.has_value());
+
+  ResumableFrame frame;
+  frame.function_address = 0xFFFFFFFC;
+  frame.resume_pc = 0xFFFFFFFC;
+  CHECK(program->Run(frame, 1) == rex::ppc::ResumableRunResult::Completed);
+}
