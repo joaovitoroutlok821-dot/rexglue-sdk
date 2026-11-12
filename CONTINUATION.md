@@ -268,3 +268,22 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Conclusão de arquitetura: o protótipo atual de `GuestCallStack` não pode ser ligado apenas ao `FunctionDispatcher` como se isso preservasse os frames C++ já ativos. Uma solução verdadeira exige transformar limites de função/chamadas convidadas em pontos de continuação cooperativos (por exemplo, dispatcher/trampolins com estado explícito e retorno controlado), ou outra estratégia que não dependa de restaurar a pilha nativa entre processos.
 - Antes de implementar, mapear macros/helpers de emissão de chamadas e todos os caminhos de execução (chamada direta, indireta, tail call, imports, traps/interrupts, fibras e APCs), definindo quais operações podem constituir pontos seguros. O snapshot também precisará incluir memória convidada, PPCContext, estado de threads, TLS/stack, objetos/kernel, temporizadores e estado de áudio/vídeo/input conforme aplicável.
 - Nenhuma mudança foi feita no app Resident Evil; preservá-lo como está até existir uma camada de checkpoint validada.
+
+
+## 2026-11-11 — Mapeamento das instruções de fluxo e chamadas emitidas pelo codegen
+
+- Revisados `src/codegen/function_graph.cpp`, `src/codegen/builders/control_flow.cpp`, `src/codegen/builders/context.cpp`, `include/rex/codegen/function_node.h`, `include/rex/ppc/func.h` e `include/rex/ppc/function.h`.
+- `FunctionNode::emitCpp()` gera uma função C++ por função PPC, inicia com `REX_FUNC_PROLOGUE()` e emite instruções como código C++ comum. Os labels internos viram labels C++ e `goto loc_...`; variáveis de registradores podem ser localizadas em variáveis automáticas C++.
+- Fluxo mapeado:
+  - `bl`: grava LR e, quando resolvido, chama diretamente a função C++ do destino ou wrapper de import.
+  - `b`: salto interno via `goto` ou chamada de cauda seguida de `return`.
+  - `blr`: `return` da função C++.
+  - `bctrl`/`blrl`: chamada indireta por `REX_CALL_INDIRECT_FUNC`.
+  - `bctr`: switch de jump table para labels/funções ou chamada indireta de cauda.
+  - chamadas condicionais e helpers de setjmp/longjmp/SEH/APC são caminhos adicionais que precisam ser considerados.
+- `BuilderContext::emit_function_call()` emite chamadas diretas C++ para funções e imports; a chamada direta não passa pelo `FunctionDispatcher::Execute()`. O dispatcher é usado em pontos de entrada, callbacks e execução externa, não em todas as chamadas PPC internas.
+- Os wrappers host/PPC em `include/rex/ppc/function.h` também executam funções nativas C++ e fazem tradução de argumentos/retornos, portanto imports e callbacks precisam participar do desenho de checkpoint.
+- Implicação: não é seguro simplesmente colocar um push/pop de frame em `FunctionDispatcher`; isso não observa todas as chamadas internas. E guardar só `PPCContext`/PC não preserva variáveis locais nem a pilha C++ que contém os frames ativos.
+- Direção arquitetural a avaliar: transformar funções recompiladas em continuations explícitas/state machines, com PC convidado de retomada e armazenamento explícito dos registradores locais/live values por frame. Chamadas diretas, indiretas, tail calls, imports e retornos precisam usar protocolo consistente. Alternativamente, estudar checkpoint cooperativo em pontos onde a execução inteira tenha desenrolado até um scheduler seguro, sem prometer restauração de pilha nativa.
+- Não implementar ainda uma alteração invasiva no gerador. Primeiro elaborar uma proposta incremental e testes de equivalência de execução para um pequeno conjunto de funções PPC, incluindo chamada direta, chamada indireta, retorno, loop/branch interno e import. Só depois ampliar para threads/fibras e snapshot de memória/kernel.
+- Estado atual continua sendo protótipo experimental; nenhum Save State funcional foi integrado ao jogo RECVX.
