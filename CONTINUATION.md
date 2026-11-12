@@ -232,3 +232,17 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Adicionado `tests/unit/catch2_compat.h` com operadores de saída decimal para `__int128` e `unsigned __int128`, incluindo tratamento seguro do menor valor signed.
 - O cabeçalho é forçado apenas no alvo `unit_tests` por `tests/unit/CMakeLists.txt`; não altera o runtime/SDK nem o APK. O workflow também monitora o novo cabeçalho.
 - Próximo passo: aguardar Lint e Guest Frame Unit Tests #7. A compilação anterior ainda não chegou ao CTest; Save State não está validado.
+
+
+## 2026-11-11 — Guest Frame Prototype Unit Tests #9 aprovado
+
+- Execução: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43121652025
+- Commit testado: `7c70830687057b00c3fd684529573af797e3187a`.
+- Resultado do job `unit-tests`: **success**.
+- `Configure test build`: passou.
+- `Build unit tests`: passou.
+- `Run guest frame tests`: passou.
+- O Lint & Format Check #86 também passou no mesmo commit: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43121652188
+- A correção final de formatação em `tests/unit/catch2_compat.h` foi registrada no commit `7c70830687057b00c3fd684529573af797e3187a`.
+- Interpretação: o protótipo atual de pilha de chamadas convidadas passou pelos testes unitários disponíveis. Isso **não** comprova Save State completo, persistência em disco, restauração após reiniciar o processo nem integração com o jogo Resident Evil.
+- Próxima etapa: revisar a implementação e os limites do snapshot de guest call stack, identificar o estado adicional do runtime que precisa ser serializado e só então planejar integração no app RECVX já funcional. Não reconstruir o jogo do zero.
