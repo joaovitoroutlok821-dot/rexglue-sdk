@@ -674,3 +674,12 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Também há execuções anteriores do commit intermediário `20eebd1bb907979090f4c402a5ff2a85ff92b746` (#42/#155); a validação de referência é a execução do commit final #43/#156.
 - Próximo passo, condicionado à CI: transformar a saída em uma unidade C++ de teste compilável com os headers/macros de PPC, fornecer stubs controlados para dependências e invocar a função gerada com um `PPCContext` real. Só então comparar estado antes/depois com a referência independente.
 - Nenhuma integração ao runtime/dispatcher foi feita; nenhum APK foi alterado. O protótipo continua experimental e o Save State completo não está implementado.
+
+
+### Correção de formatação do teste AOT — 2026-11-12
+- O primeiro Lint #156/#157 apontou apenas duas diferenças de clang-format no novo teste; nenhuma falha semântica foi reportada por esses jobs.
+- Corrigidas as duas posições em `tests/unit/ppc/resumable_frame_test.cpp` (linha em branco extra e quebra do primeiro CHECK).
+- Commit da correção: `22eb6dd586d56eb16e1365b8c62756bfa2f27aa8`.
+- Lint & Format Check #158 passou: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43273682476
+- Guest Frame Prototype Unit Tests #44 foi iniciado para esse commit: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43273682433. Na última consulta, ainda estava em checkout de código/submódulos; o build e CTest ainda não haviam começado. Os jobs #42/#43, dos commits intermediários, também continuavam sem conclusão. Portanto, o novo teste de emissão AOT ainda não está validado pela CI.
+- A documentação deve considerar como código mais recente o commit `22eb6dd586d56eb16e1365b8c62756bfa2f27aa8`; a atualização deste registro é posterior.
