@@ -61,14 +61,13 @@ class ResumableProgram {
         if (bo != 16 || bi != 0 || absolute || link)
           return std::nullopt;
 
-        const int32_t signed_bd = (bd & 0x2000) != 0
-                                      ? static_cast<int32_t>(bd) - 0x4000
-                                      : static_cast<int32_t>(bd);
+        int32_t signed_bd = static_cast<int32_t>(bd);
+        if ((bd & 0x2000) != 0)
+          signed_bd -= 0x4000;
         const int64_t target = static_cast<int64_t>(address) + signed_bd * 4;
-        if (target < function_address ||
-            target >= static_cast<int64_t>(function_address) +
-                          static_cast<int64_t>(words.size()) * 4 ||
-            (target & 3) != 0) {
+        const int64_t function_end =
+            static_cast<int64_t>(function_address) + static_cast<int64_t>(words.size()) * 4;
+        if (target < function_address || target >= function_end || (target & 3) != 0) {
           return std::nullopt;
         }
 
@@ -112,8 +111,11 @@ class ResumableProgram {
         }
         case InstructionKind::BranchDecrementNotZero:
           --frame.ctr;
-          frame.resume_pc =
-              frame.ctr != 0 ? instruction.branch_target : instruction.address + 4;
+          if (frame.ctr != 0) {
+            frame.resume_pc = instruction.branch_target;
+          } else {
+            frame.resume_pc = instruction.address + 4;
+          }
           break;
         case InstructionKind::Return:
           return ResumableRunResult::Completed;
