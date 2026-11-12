@@ -464,3 +464,21 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - A retomada do teste ocorre no mesmo processo, após reconstruir o frame a partir dos bytes; ainda não prova encerramento/reabertura do aplicativo.
 - Não inclui FPR, VMX, memória guest, scheduler, threads, estado de kernel, áudio, vídeo, imports, chamadas PPC aninhadas, SEH ou callbacks.
 - O caminho normal do SDK e o APK funcional do RECVX não foram modificados.
+
+
+## 2026-11-12 — CI verde e ampliação dos testes de limites do executor PPC
+
+- Verificadas as execuções do commit `61c8575cb7bda872adb482ad61cec81e0264cfd9`:
+  - Guest Frame Prototype Unit Tests #24: **success** — https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43146012663
+  - Lint & Format Check #120: **success** — https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43146171723
+- Adicionados testes para:
+  - `addi` com imediato negativo, confirmando extensão de sinal.
+  - `CTR=1`, confirmando que `bdnz` decrementa CTR a zero e segue para a próxima instrução.
+  - orçamento de execução igual a zero, confirmando que o executor retorna `Yielded` sem alterar PC nem CTR.
+- Os testes foram adicionados em `tests/unit/ppc/resumable_frame_test.cpp`.
+- Commits dos testes:
+  - Primeiro conjunto: `bf086f2ce28e397bdfa0308a7568e243545f3cad`.
+  - Correção do deslocamento relativo do branch no caso CTR=1: `3e35f1cb36729335257eebc8022bd8510da26eb5`.
+- As novas alterações ainda precisam passar pelos workflows de Guest Frame Unit Tests e Lint; não declarar os novos casos aprovados até a conclusão dessas execuções.
+- Próximo passo após CI verde: estudar a extração de instruções dos blocos reais de `FunctionNode`, começando por um caminho opt-in e limitado, sem modificar o codegen padrão. O executor ainda não está integrado ao dispatcher/runtime e não constitui Save State completo.
+- O APK funcional do Resident Evil permanece intocado. Não integrar esta experiência ao jogo até demonstrar equivalência com código PPC real e restauração em processo separado.
