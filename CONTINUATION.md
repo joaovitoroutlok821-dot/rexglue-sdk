@@ -482,3 +482,33 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - As novas alterações ainda precisam passar pelos workflows de Guest Frame Unit Tests e Lint; não declarar os novos casos aprovados até a conclusão dessas execuções.
 - Próximo passo após CI verde: estudar a extração de instruções dos blocos reais de `FunctionNode`, começando por um caminho opt-in e limitado, sem modificar o codegen padrão. O executor ainda não está integrado ao dispatcher/runtime e não constitui Save State completo.
 - O APK funcional do Resident Evil permanece intocado. Não integrar esta experiência ao jogo até demonstrar equivalência com código PPC real e restauração em processo separado.
+
+
+## 2026-11-12 — Adaptador experimental entre FunctionNode e executor resumível
+
+### Auditoria do codegen real
+- Confirmado em `include/rex/codegen/function_node.h` que `FunctionNode` expõe, após discovery/seal, os blocos, as instruções decodificadas, as chamadas, tail calls, jump tables, branches não resolvidos e metadados de exceção.
+- Em `src/codegen/function_graph.cpp`, `emitCpp()` percorre os blocos, lê cada palavra PPC, faz `Disassemble()` e chama `DispatchInstruction()`. O codegen normal emite labels/gotos e chamadas C++; não é seguro suspender esse corpo nativo.
+- A primeira ponte opt-in foi isolada em `include/rex/codegen/resumable_function.h`; não altera `FunctionNode::emitCpp()`, builders, dispatcher ou runtime.
+  
+### Contrato do adaptador
+- `CompileResumableFunction(const FunctionNode&)` só aceita função selada, não-import, com um único bloco contíguo que começa na entrada e cobre exatamente o tamanho da função.
+- Rejeita funções com chamadas diretas, tail calls, jump tables, branches não resolvidos, metadados de exceção, instruções ausentes/desordenadas ou instruções fora do subconjunto suportado.
+- Extrai as palavras das instruções decodificadas (conversão big-endian já tratada pelo tipo `rex::be<uint32_t>`) e delega a validação PPC ao `ResumableProgram::Compile()`.
+- O primeiro teste constrói uma `FunctionNode` sintética real com instruções `addi/addi/bdnz/blr`, sela o nó, passa pelo adaptador e executa em quanta. Isso valida a ponte entre a estrutura de função e o executor, mas não é ainda o código C++ gerado por `emitCpp()` nem equivalência com a execução normal.
+  
+### Commits e validação pendente
+- Header adaptador: `c56103b704982e34b34373649b412d51e723cd3d`.
+- Teste com FunctionNode: `133524b9afe78bc30f99eb07eaa0b8acb1558308`.
+- Workflow atualizado para monitorar o novo header: `535fe9cfed143ccf08877282c94aecc67b7a883a`.
+- Workflows observados:
+  - Guest Frame Prototype Unit Tests #28: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43150203320 — em andamento na última consulta.
+  - Lint & Format Check #126: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43150203245 — em andamento na última consulta.
+  - Lint & Format Check #125 (header isolado): https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43150180969 — em andamento na última consulta.
+- Não considerar o adaptador validado até os workflows #28 e #126 terminarem com sucesso.
+  
+### Limites e próximo passo
+- O adaptador aceita apenas funções muito simples de bloco único; a maioria das funções reais do jogo será rejeitada por enquanto.
+- O executor ainda suporta somente `addi`, `bdnz` e `blr`; não foi conectado ao codegen C++ nem ao runtime.
+- Próximo passo após CI verde: adicionar testes de rejeição para funções com múltiplos blocos e chamadas, e verificar o comportamento de endereço/intervalo com casos inválidos. Depois estudar uma comparação de referência com o codegen normal em fixture pequena.
+- Não integrar ao APK funcional do Resident Evil. Save State completo e restauração em outro processo ainda não existem.
