@@ -255,3 +255,16 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Os testes exercitam apenas metadados de frames: iniciar, chamada, retorno, atualizar resume PC e copiar/restaurar um vetor em memória. Não executam instruções PPC nem comprovam captura/restauração de registradores, memória, scheduler, threads ou estado gráfico/áudio.
 - Portanto, o resultado verde do workflow valida o modelo isolado, não um Save State utilizável.
 - Próximo passo técnico: mapear o caminho real de execução das funções recompiladas (emissão de chamadas/retornos, macros de função, dispatcher e estado PPC por thread) para decidir onde instrumentar continuations sem quebrar o jogo existente. Depois ampliar os testes para execução/resume real antes de qualquer integração no RECVX.
+
+
+## 2026-11-11 — Mapeamento do caminho de execução PPC e threads
+
+- Revisados `src/system/function_dispatcher.cpp`, `src/system/xthread.cpp`, `include/rex/system/xthread.h`, `include/rex/system/thread_state.h` e a estrutura `PPCContext` em `include/rex/ppc/context.h`.
+- `FunctionDispatcher::Execute(ThreadState*, address)` resolve o endereço convidado para um `PPCFunc*`, ajusta `r1`/ `lr`, chama a função recompilada diretamente no host (`fn(*ctx, membase)`) e restaura `lr`/ `r1` ao retornar.
+- `XThread::Execute()` também chama diretamente o ponteiro `PPCFunc*` de entrada. Assim, chamadas internas emitidas como chamadas C++ criam frames na pilha nativa do host; não existe hoje um dispatcher cooperativo por instrução que possa simplesmente gravar um PC e retomar.
+- `ThreadState` mantém um `PPCContext` por thread. O contexto inclui GPRs, LR, CTR, XER, MSR, CRs, FPSCR, FPRs, vetores e `last_indirect_target`. Esses registradores são parte do estado necessário, mas não bastam para restaurar a pilha C++ do host.
+- `XThread::Save()` retorna falso para thread convidada em execução; há TODO explícito sobre serialização compatível com ReXGlue. O caminho `Restore()` cria thread suspensa, mas o código da thread restaurada ainda registra “Thread restore not implemented”.
+- `XThread::Suspend()` usa suspensão da thread host; isso não converte uma pilha C++ ativa em uma continuação serializável e não deve ser confundido com checkpoint seguro.
+- Conclusão de arquitetura: o protótipo atual de `GuestCallStack` não pode ser ligado apenas ao `FunctionDispatcher` como se isso preservasse os frames C++ já ativos. Uma solução verdadeira exige transformar limites de função/chamadas convidadas em pontos de continuação cooperativos (por exemplo, dispatcher/trampolins com estado explícito e retorno controlado), ou outra estratégia que não dependa de restaurar a pilha nativa entre processos.
+- Antes de implementar, mapear macros/helpers de emissão de chamadas e todos os caminhos de execução (chamada direta, indireta, tail call, imports, traps/interrupts, fibras e APCs), definindo quais operações podem constituir pontos seguros. O snapshot também precisará incluir memória convidada, PPCContext, estado de threads, TLS/stack, objetos/kernel, temporizadores e estado de áudio/vídeo/input conforme aplicável.
+- Nenhuma mudança foi feita no app Resident Evil; preservá-lo como está até existir uma camada de checkpoint validada.
