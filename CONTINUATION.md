@@ -246,3 +246,12 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - A correção final de formatação em `tests/unit/catch2_compat.h` foi registrada no commit `7c70830687057b00c3fd684529573af797e3187a`.
 - Interpretação: o protótipo atual de pilha de chamadas convidadas passou pelos testes unitários disponíveis. Isso **não** comprova Save State completo, persistência em disco, restauração após reiniciar o processo nem integração com o jogo Resident Evil.
 - Próxima etapa: revisar a implementação e os limites do snapshot de guest call stack, identificar o estado adicional do runtime que precisa ser serializado e só então planejar integração no app RECVX já funcional. Não reconstruir o jogo do zero.
+
+
+## 2026-11-11 — Revisão técnica após os testes aprovados
+
+- Revisados `include/rex/ppc/guest_call_stack.h`, `tests/unit/ppc/guest_call_stack_test.cpp` e `src/codegen/function_graph.cpp`.
+- Confirmação importante: o próprio cabeçalho descreve `GuestCallStack` como experimental e **não conectado ao PPC codegen nem à execução do runtime**.
+- Os testes exercitam apenas metadados de frames: iniciar, chamada, retorno, atualizar resume PC e copiar/restaurar um vetor em memória. Não executam instruções PPC nem comprovam captura/restauração de registradores, memória, scheduler, threads ou estado gráfico/áudio.
+- Portanto, o resultado verde do workflow valida o modelo isolado, não um Save State utilizável.
+- Próximo passo técnico: mapear o caminho real de execução das funções recompiladas (emissão de chamadas/retornos, macros de função, dispatcher e estado PPC por thread) para decidir onde instrumentar continuations sem quebrar o jogo existente. Depois ampliar os testes para execução/resume real antes de qualquer integração no RECVX.
