@@ -11,7 +11,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <rex/codegen/binary_view.h>
+#include <rex/codegen/config.h>
 #include <rex/codegen/function_graph.h>
+#include <rex/codegen/test_support.h>
 #include <rex/codegen/resumable_function.h>
 #include <rex/ppc/resumable_frame.h>
 #include <rex/ppc/resumable_program.h>
