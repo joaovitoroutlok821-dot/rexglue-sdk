@@ -391,3 +391,15 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Aguardar os novos workflows de lint e Guest Frame Unit Tests disparados por esse commit. Ainda não declarar o Lint aprovado até ver o resultado.
 - Limite técnico permanece: os testes verdes #15 exercitam o frame versionado e uma fixture manual C++, não código PPC emitido por `FunctionNode`, nem restauração real entre processos. Não é Save State completo e não deve ser integrado ao APK funcional do RECVX ainda.
 - Próxima etapa após CI verde: estudar e prototipar, em modo opt-in isolado, a emissão de blocos básicos como estados explícitos para uma função PPC sintética, sem alterar o codegen padrão/runtime nem o jogo funcional.
+
+
+## 2026-11-12 — Nova tentativa de formatação do teste ResumableFrame
+
+- O Lint #106 e #107 continuou falhando exclusivamente em `tests/unit/ppc/resumable_frame_test.cpp:134`: clang-format 20.1.8 rejeitou a quebra de linha após o operador de atribuição.
+- A chamada foi revertida para a disposição em que a atribuição e o início da chamada ficam na mesma linha, com o argumento em linha seguinte.
+- Correção enviada no commit `8a0a1dc7ac68ab5a64a4d8114762ab42fa13859a`.
+- Novas validações disparadas:
+  - Guest Frame Prototype Unit Tests #17: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43143579237
+  - Lint & Format Check #108: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43143579218
+- No momento desta atualização, ambos estavam na fila. Não declarar lint/testes #17 aprovados até consultar as conclusões.
+- O Guest Frame Unit Tests #15 havia passado no commit anterior `5fcb58ab...`; essa aprovação não valida automaticamente o commit novo.
