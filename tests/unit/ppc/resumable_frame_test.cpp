@@ -58,6 +58,52 @@ uint64_t RunReferenceFixture(uint64_t limit) {
   return counter;
 }
 
+bool RunPpcReference(std::span<const uint32_t> words, ResumableFrame& state) {
+  for (size_t step = 0; step < 10000; ++step) {
+    if (state.resume_pc < state.function_address)
+      return false;
+    const uint32_t byte_offset = state.resume_pc - state.function_address;
+    if ((byte_offset & 3) != 0 || byte_offset / 4 >= words.size())
+      return false;
+
+    const uint32_t word = words[byte_offset / 4];
+    if (word == 0x4E800020)
+      return true;
+
+    const uint32_t opcode = word >> 26;
+    if (opcode == 14) {
+      const uint32_t target = (word >> 21) & 0x1F;
+      const uint32_t base = (word >> 16) & 0x1F;
+      const int64_t immediate = static_cast<int16_t>(word & 0xFFFF);
+      const uint64_t base_value = base == 0 ? 0 : state.gpr[base];
+      state.gpr[target] = base_value + static_cast<uint64_t>(immediate);
+      state.resume_pc += 4;
+      continue;
+    }
+
+    if (opcode == 16) {
+      const uint32_t bo = (word >> 21) & 0x1F;
+      const uint32_t bi = (word >> 16) & 0x1F;
+      const uint32_t displacement = (word >> 2) & 0x3FFF;
+      if (bo != 16 || bi != 0 || ((word >> 1) & 1) != 0 || (word & 1) != 0)
+        return false;
+
+      int32_t signed_displacement = static_cast<int32_t>(displacement);
+      if ((displacement & 0x2000) != 0)
+        signed_displacement -= 0x4000;
+      --state.ctr;
+      state.resume_pc = state.ctr != 0
+                            ? static_cast<uint32_t>(static_cast<int64_t>(state.resume_pc) +
+                                                    signed_displacement * 4)
+                            : state.resume_pc + 4;
+      continue;
+    }
+
+    return false;
+  }
+  return false;
+}
+
 }  // namespace
 
 TEST_CASE("Resumable frame serializes defined guest state", "[ppc][resumable_frame]") {
@@ -368,6 +414,55 @@ TEST_CASE("FunctionNode resumable adapter rejects call edges",
   function->seal();
 
   CHECK_FALSE(rex::codegen::CompileResumableFunction(*function).has_value());
+}
+
+TEST_CASE("Resumable PPC execution matches independent reference across save points",
+          "[ppc][resumable_program]") {
+  constexpr uint32_t function_address = 0x8200A000;
+  // addi r3, r0, -2
+  // addi r3, r3, 3
+  // bdnz back to the second instruction
+  // blr
+  constexpr std::array<uint32_t, 4> code = {
+      0x3860FFFE,
+      0x38630003,
+      0x4200FFFC,
+      0x4E800020,
+  };
+
+  auto program = rex::ppc::ResumableProgram::Compile(function_address, code);
+  REQUIRE(program.has_value());
+
+  for (uint64_t initial_ctr : {1ULL, 2ULL, 5ULL, 17ULL}) {
+    ResumableFrame reference;
+    reference.function_address = function_address;
+    reference.resume_pc = function_address;
+    reference.ctr = initial_ctr;
+    REQUIRE(RunPpcReference(code, reference));
+
+    ResumableFrame actual;
+    actual.function_address = function_address;
+    actual.resume_pc = function_address;
+    actual.ctr = initial_ctr;
+
+    auto result = rex::ppc::ResumableRunResult::Yielded;
+    while (result == rex::ppc::ResumableRunResult::Yielded) {
+      result = program->Run(actual, 2);
+      if (result == rex::ppc::ResumableRunResult::Yielded) {
+        auto snapshot = actual.Serialize();
+        REQUIRE(snapshot.has_value());
+        const std::span<const uint8_t> snapshot_span(*snapshot);
+        auto restored = ResumableFrame::Deserialize(snapshot_span);
+        REQUIRE(restored.has_value());
+        actual = std::move(*restored);
+      }
+    }
+
+    REQUIRE(result == rex::ppc::ResumableRunResult::Completed);
+    CHECK(actual.gpr == reference.gpr);
+    CHECK(actual.ctr == reference.ctr);
+    CHECK(actual.resume_pc == reference.resume_pc);
+  }
 }
 
 TEST_CASE("Resumable PPC compiler validates guest address boundaries", "[ppc][resumable_program]") {
