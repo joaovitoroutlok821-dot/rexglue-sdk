@@ -11,6 +11,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <rex/codegen/function_graph.h>
 #include <rex/codegen/resumable_function.h>
 #include <rex/ppc/resumable_frame.h>
 #include <rex/ppc/resumable_program.h>
@@ -301,4 +302,72 @@ TEST_CASE("FunctionNode resumable adapter", "[codegen][ppc][resumable_program]")
   CHECK(program->Run(frame, 2) == rex::ppc::ResumableRunResult::Completed);
   CHECK(frame.gpr[3] == 3);
   CHECK(frame.ctr == 0);
+}
+
+
+TEST_CASE("FunctionNode resumable adapter rejects multiple blocks",
+          "[codegen][ppc][resumable_program]") {
+  constexpr uint32_t function_address = 0x82008000;
+  constexpr std::array<uint32_t, 4> words = {
+      0x38600000,
+      0x38630001,
+      0x4200FFFC,
+      0x4E800020,
+  };
+  std::array<rex::codegen::ppc::Instruction, 4> instructions{};
+  std::vector<rex::codegen::ppc::Instruction*> decoded;
+  decoded.reserve(instructions.size());
+  for (size_t index = 0; index < instructions.size(); ++index) {
+    instructions[index].address =
+        function_address + static_cast<uint32_t>(index * sizeof(uint32_t));
+    instructions[index].code = words[index];
+    decoded.push_back(&instructions[index]);
+  }
+
+  using rex::codegen::FunctionAuthority;
+  using rex::codegen::FunctionNode;
+  constexpr uint32_t block_size = 2 * sizeof(uint32_t);
+  constexpr uint32_t function_size = 4 * sizeof(uint32_t);
+  FunctionNode function(function_address, function_size, FunctionAuthority::DISCOVERED);
+  function.discover({{function_address, block_size},
+                     {function_address + block_size, block_size}},
+                    std::move(decoded), {});
+  function.seal();
+
+  CHECK_FALSE(rex::codegen::CompileResumableFunction(function).has_value());
+}
+
+TEST_CASE("FunctionNode resumable adapter rejects resolved calls",
+          "[codegen][ppc][resumable_program]") {
+  constexpr uint32_t function_address = 0x82009000;
+  constexpr std::array<uint32_t, 4> words = {
+      0x38600000,
+      0x38630001,
+      0x4200FFFC,
+      0x4E800020,
+  };
+  std::array<rex::codegen::ppc::Instruction, 4> instructions{};
+  std::vector<rex::codegen::ppc::Instruction*> decoded;
+  decoded.reserve(instructions.size());
+  for (size_t index = 0; index < instructions.size(); ++index) {
+    instructions[index].address =
+        function_address + static_cast<uint32_t>(index * sizeof(uint32_t));
+    instructions[index].code = words[index];
+    decoded.push_back(&instructions[index]);
+  }
+
+  using rex::codegen::FunctionAuthority;
+  using rex::codegen::FunctionGraph;
+  using rex::codegen::FunctionNode;
+  constexpr uint32_t function_size = static_cast<uint32_t>(words.size() * sizeof(uint32_t));
+  FunctionGraph graph;
+  FunctionNode* function =
+      graph.addFunction(function_address, function_size, FunctionAuthority::DISCOVERED);
+  REQUIRE(function != nullptr);
+  function->discover({{function_address, function_size}}, std::move(decoded), {});
+  graph.addCallToFunction(function_address, function_address + 4,
+                          rex::codegen::CallTarget::unresolved(0x8200A000));
+  function->seal();
+
+  CHECK_FALSE(rex::codegen::CompileResumableFunction(*function).has_value());
 }
