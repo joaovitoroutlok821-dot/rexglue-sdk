@@ -512,3 +512,16 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - O executor ainda suporta somente `addi`, `bdnz` e `blr`; não foi conectado ao codegen C++ nem ao runtime.
 - Próximo passo após CI verde: adicionar testes de rejeição para funções com múltiplos blocos e chamadas, e verificar o comportamento de endereço/intervalo com casos inválidos. Depois estudar uma comparação de referência com o codegen normal em fixture pequena.
 - Não integrar ao APK funcional do Resident Evil. Save State completo e restauração em outro processo ainda não existem.
+
+
+### Ajustes de formatação e estado posterior — 2026-11-12
+- Os primeiros Lints do adaptador (#125–#128) falharam somente por clang-format 20.1.8 nos arquivos novos e no teste; os logs não apontaram ainda falha de compilação do adaptador.
+- Simplificadas as condições e o cálculo de endereço no header; reduzido o nome do caso de teste e fatorado o tamanho da função para variáveis locais.
+- Commits de formatação:
+  - Header: `41f74cf590a10409040753e6c5fda9ef11c05bf5`.
+  - Teste: `b68b4fa1d42e32821f87beeb52406251b2a5375b`.
+- Validações mais recentes observadas:
+  - Guest Frame Prototype Unit Tests #30: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43150314392 — em andamento na consulta.
+  - Lint & Format Check #129: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43150314384 — em andamento na consulta.
+- Execuções anteriores de teste #28 e #29 também apareciam em andamento; verificar o resultado mais recente antes de considerar o adaptador validado.
+- Não há ainda confirmação de equivalência com `emitCpp()`; este adaptador apenas extrai um subconjunto restrito de instruções decodificadas de um `FunctionNode` selado.
