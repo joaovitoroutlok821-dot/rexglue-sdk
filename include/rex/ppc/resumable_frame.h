@@ -31,8 +31,8 @@ struct ResumableFrame {
   std::vector<uint64_t> spill_slots;
 
   bool IsValid() const noexcept {
-    if (function_address == 0 || resume_pc == 0 ||
-        spill_slots.size() > kMaxSpillSlots || xer_so > 1 || xer_ov > 1 || xer_ca > 1) {
+    if (function_address == 0 || resume_pc == 0 || spill_slots.size() > kMaxSpillSlots ||
+        xer_so > 1 || xer_ov > 1 || xer_ca > 1) {
       return false;
     }
     for (uint8_t field : cr) {
@@ -69,8 +69,8 @@ struct ResumableFrame {
 
   static std::optional<ResumableFrame> Deserialize(std::span<const uint8_t> bytes) {
     constexpr size_t kFixedSize = 4 + 4 * 3 + 8 * 2 + 3 + 8 + 32 * 8 + 4;
-    if (bytes.size() < kFixedSize || bytes[0] != 'R' || bytes[1] != 'X' ||
-        bytes[2] != 'R' || bytes[3] != 'F') {
+    if (bytes.size() < kFixedSize || bytes[0] != 'R' || bytes[1] != 'X' || bytes[2] != 'R' ||
+        bytes[3] != 'F') {
       return std::nullopt;
     }
 
@@ -79,8 +79,8 @@ struct ResumableFrame {
     ResumableFrame frame;
     if (!ReadU32(bytes, offset, version) || version != kFormatVersion ||
         !ReadU32(bytes, offset, frame.function_address) ||
-        !ReadU32(bytes, offset, frame.resume_pc) ||
-        !ReadU64(bytes, offset, frame.lr) || !ReadU64(bytes, offset, frame.ctr)) {
+        !ReadU32(bytes, offset, frame.resume_pc) || !ReadU64(bytes, offset, frame.lr) ||
+        !ReadU64(bytes, offset, frame.ctr)) {
       return std::nullopt;
     }
 
