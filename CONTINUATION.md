@@ -620,3 +620,8 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Lint #144 do header `resumable_program.h` passou: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43265411067
 - Guest Frame Unit Tests #38 (commit `cb9fedb...`) e #39 (commit `b5de52c...`) ainda estavam em andamento na última consulta. O lint #145 pertence ao commit anterior e foi substituído pela correção acima.
 - Verificar as novas execuções disparadas pelo commit `f068f6b...` antes de declarar a etapa validada.
+
+### Validação do ajuste de formatação — 2026-11-12
+- Lint & Format Check #147 passou no commit `f068f6bb8ce69567a3d410e9ef3f992d97b92c9f`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43265585017
+- O Guest Frame Prototype Unit Tests #40, no mesmo commit, está em andamento. Na última consulta, o job ainda executava o checkout do código e submódulos; build e CTest ainda não começaram: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43265585024
+- O #40 é a validação que deve ser usada para confirmar os testes de limites de endereço e a correção de formatação no mesmo commit. Os runs #38 e #39 pertencem a commits anteriores e não substituem essa confirmação.
