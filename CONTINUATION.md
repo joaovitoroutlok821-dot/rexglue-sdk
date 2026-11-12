@@ -558,3 +558,15 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - O workflow já monitora `tests/unit/ppc/resumable_frame_test.cpp`; a nova execução de Guest Frame e o Lint precisam terminar antes de declarar os casos aprovados.
 - Próxima etapa após CI verde: testar entradas inválidas de instruções/endereço e, depois, planejar comparação de referência entre o adaptador/executor e o codegen normal em fixture controlada. O adaptador ainda não executa o C++ emitido por `FunctionNode::emitCpp()`.
 - Nenhuma alteração no dispatcher, runtime ou APK funcional do Resident Evil. Isto continua sendo um protótipo parcial, não Save State completo.
+
+
+## 2026-11-12 — Revisão dos testes negativos e correção do lint
+
+- O Lint & Format Check do commit 4faf262a9768f1dd57ea4310ba8d2f2ceec92e9a falhou apenas em duas posições de formatação em tests/unit/ppc/resumable_frame_test.cpp (linhas próximas de 305 e 332); não foi uma falha de compilação.
+- Corrigida a quebra/alinhamento de FunctionNode::discover() e removida a linha em branco excedente. Commits:
+  - ca1b394e4205edd80832cdd357d5cad432b4a87b (também renomeia o caso para “rejects call edges”).
+  - 5f1eca42aba45fe774a8441d88c3550ebcbc7fbb (ajuste final de alinhamento para clang-format).
+- Revisão semântica: o teste de chamadas usa CallTarget::unresolved(...), registrado como uma CallEdge por FunctionGraph::addCallToFunction(). Portanto, ele comprova que o adaptador rejeita uma função que possui uma aresta de chamada registrada, mas não comprova especificamente uma chamada resolvida. O nome do teste e esta documentação foram ajustados para não exagerar o que foi validado.
+- Guest Frame Prototype Unit Tests do commit anterior 4faf262... ainda estava em compilação na última consulta: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43260371990. Esse run não inclui as correções posteriores; aguardar a execução disparada pelo commit 5f1eca42... para validar o estado atual.
+- Lint anterior falhou somente por clang-format: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43260372016. O commit 5f1eca42... contém a correção, mas o novo lint ainda precisa ser confirmado.
+- O adaptador permanece experimental, limitado a funções de bloco único sem chamadas, e não executa o C++ emitido por FunctionNode::emitCpp(). Nenhuma alteração no runtime, dispatcher ou APK funcional do Resident Evil.
