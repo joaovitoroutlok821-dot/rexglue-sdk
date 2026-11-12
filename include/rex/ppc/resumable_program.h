@@ -27,7 +27,7 @@ class ResumableProgram {
   static std::optional<ResumableProgram> Compile(uint32_t function_address,
                                                  std::span<const uint32_t> words) {
     if (function_address == 0 || (function_address & 3) != 0 || words.empty() ||
-        words.size() > (UINT32_MAX - function_address) / 4) {
+        words.size() - 1 > (UINT32_MAX - function_address) / 4) {
       return std::nullopt;
     }
 
