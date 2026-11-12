@@ -543,3 +543,18 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Commit da correção: `495a203d6ad49deb5dec616e88c20216ac57607f`.
 - Próximo passo: aguardar e verificar o novo Guest Frame Prototype Unit Tests e o Lint disparados por esse commit. A falha anterior foi de compilação do include; os testes do adaptador ainda não foram executados.
 - O adaptador continua experimental e restrito. Nenhuma alteração foi feita no codegen normal, runtime ou APK funcional do Resident Evil; não é Save State completo.
+
+
+## 2026-11-12 — CI verde do adaptador e testes negativos do FunctionNode
+
+- A correção do include foi validada:
+  - Guest Frame Prototype Unit Tests: **success** — https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43216681156
+  - Lint & Format Check: **success** — https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43216681180
+- Adicionados dois testes negativos em `tests/unit/ppc/resumable_frame_test.cpp`:
+  - Função selada com dois blocos contíguos deve ser rejeitada pelo adaptador.
+  - Função selada com uma chamada resolvida/registrada no grafo deve ser rejeitada.
+- Os testes usam instruções PPC suportadas para isolar a validação estrutural do FunctionNode; não tentam executar funções multi-bloco ou com chamadas.
+- Commit dos testes: `4faf262a9768f1dd57ea4310ba8d2f2ceec92e9a`.
+- O workflow já monitora `tests/unit/ppc/resumable_frame_test.cpp`; a nova execução de Guest Frame e o Lint precisam terminar antes de declarar os casos aprovados.
+- Próxima etapa após CI verde: testar entradas inválidas de instruções/endereço e, depois, planejar comparação de referência entre o adaptador/executor e o codegen normal em fixture controlada. O adaptador ainda não executa o C++ emitido por `FunctionNode::emitCpp()`.
+- Nenhuma alteração no dispatcher, runtime ou APK funcional do Resident Evil. Isto continua sendo um protótipo parcial, não Save State completo.
