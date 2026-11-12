@@ -350,3 +350,15 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - O primeiro protótipo não deve reutilizar o corpo C++ atual com `goto`: deve criar uma segunda via de emissão opt-in que converta cada bloco básico suportado em um estado explícito (PC guest) e cada transição em atualização do PC/retorno ao dispatcher. Antes de emitir essa variante, precisa validar que todos os valores usados depois de uma transição estão no frame ou em estado guest persistente.
 - Não foi alterado o codegen nem o runtime nesta etapa. Nenhuma alteração foi feita no caminho padrão e nenhuma integração foi feita no aplicativo RECVX.
 - Próxima etapa: definir um formato mínimo de frame versionado e um pequeno fixture de função PPC sintética (aritmética + branch/loop interno, sem chamadas, imports, SEH, hooks ou jump tables); provar equivalência entre a execução C++ normal e a máquina de estados antes de adicionar serialização/deserialização e reconstrução a partir de bytes.
+
+
+## 2026-11-11 — Primeiro formato explícito de frame resumível (protótipo isolado)
+
+- Adicionado `include/rex/ppc/resumable_frame.h` com `rex::ppc::ResumableFrame`: formato binário versionado (`RXRF`, versão 1), endereços guest da função/PC de retomada, GPRs, LR, CTR, bits guest de XER, campos CR e slots temporários explícitos.
+- A serialização escreve cada campo individualmente em little-endian; não faz dump bruto de `PPCContext`, não inclui padding nem ponteiros host. A leitura rejeita magic/versão incorretos, endereços nulos, campos inválidos, slots acima do limite e bytes extras/truncados.
+- O escopo atual é deliberadamente parcial: ainda não inclui FPR, VMX, FPSCR, memória guest, scheduler, threads, estado de kernel, gráficos ou áudio. Portanto, esse frame não representa ainda um Save State completo.
+- Adicionado `tests/unit/ppc/resumable_frame_test.cpp` com round-trip de estado, rejeição de payloads inválidos e uma fixture manual de máquina de estados com loop/branch. A fixture interrompe a execução, serializa, destrói o objeto original, reconstrói a partir dos bytes e compara o resultado com uma implementação de referência.
+- Importante: a fixture é escrita manualmente em C++ e **não é código PPC gerado pelo FunctionNode**. Ela valida o contrato de persistência do frame e a semântica básica de retomada, não prova ainda a transformação do codegen.
+- Registrado o novo teste em `tests/unit/CMakeLists.txt` e no workflow `.github/workflows/guest-frame-prototype-tests.yml`.
+- Nenhuma alteração foi feita em `FunctionNode::emitCpp()`, nos builders normais, no dispatcher ou no runtime. O caminho padrão e o APK funcional do RECVX permanecem fora desta experiência.
+- Próximo passo após CI verde: ligar o modelo a um emissor experimental de blocos básicos, inicialmente apenas aritmética e branch interno, garantindo que cada valor vivo entre blocos seja armazenado no frame. O teste seguinte deverá executar código gerado de verdade e comparar com o caminho C++ normal antes de ampliar a cobertura.
