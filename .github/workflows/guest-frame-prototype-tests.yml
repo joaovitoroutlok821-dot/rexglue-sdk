@@ -9,6 +9,7 @@ on:
       - 'include/rex/ppc/guest_call_stack.h'
       - 'include/rex/ppc/resumable_frame.h'
       - 'include/rex/ppc/resumable_program.h'
+      - 'include/rex/codegen/resumable_function.h'
       - 'include/rex/string/numeric.h'
       - 'include/rex/chrono/chrono.h'
       - 'tests/unit/ppc/guest_call_stack_test.cpp'
