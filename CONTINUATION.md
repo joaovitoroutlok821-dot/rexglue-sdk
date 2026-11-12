@@ -298,3 +298,35 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - `XThread::Restore()` restaura alguns metadados e PPCContext, cria uma thread suspensa, mas o corpo de execução termina com `REXSYS_ERROR("Thread restore not implemented")`; além disso, o estado serializado atual não fornece um PC válido de continuação.
 - A camada Fiber é útil para criar pontos de pausa cooperativa e testes intra-processo, mas não resolve persistência após encerramento/reinício. Um protótipo de persistência deve usar continuations explícitas e dados serializáveis, ou demonstrar uma estratégia de relocalização completa antes de considerar pilha host.
 - Critério mínimo para um Save State verdadeiro: pausar em ponto seguro, salvar estado guest + memória + scheduler/threads e objetos relevantes; fechar completamente o processo; iniciar novamente, reconstruir o runtime e retomar do PC/estado serializado; comprovar continuidade determinística sem depender da pilha C++ antiga.
+
+
+## 2026-11-11 — Proposta incremental para continuations persistentes no codegen
+
+### Evidência adicional do gerador
+- `FunctionNode::emitCpp()` em `src/codegen/function_graph.cpp` emite uma função C++ comum, chama `REX_FUNC_PROLOGUE()`, gera labels C++ (`loc_...`) e declara registradores localizados como variáveis automáticas no escopo da função.
+- Os caminhos de chamadas são emitidos por `BuilderContext::emit_function_call()` em `src/codegen/builders/context.cpp`; funções resolvidas e imports podem ser invocados diretamente como funções C++.
+- Logo, uma retomada persistente não pode depender de labels C++ nem de variáveis automáticas que desaparecem quando a função retorna/processo termina.
+
+### Arquitetura candidata (ainda não implementada)
+1. Definir um frame de execução serializável, identificado por versão e endereço guest da função, contendo PC guest de retomada, PPCContext/registradores vivos, estado de retorno e slots para valores temporários/localizados.
+2. Fazer o codegen produzir uma variante experimental de função resumível: blocos básicos identificados por PC, transições explícitas e armazenamento de todos os valores vivos no frame antes de qualquer ponto de yield/chamada que possa suspender.
+3. Usar um dispatcher de continuations para executar um passo/quantum e empilhar frames guest explícitos nas chamadas diretas e indiretas; retorno remove o frame e propaga os valores de retorno.
+4. Imports e callbacks precisam declarar se são checkpoint-safe. Operações com efeitos externos não podem ser interrompidas no meio; só podem ser capturadas antes/depois de um limite seguro.
+5. Manter a emissão atual como caminho padrão. O modo resumível deve ser opt-in e limitado inicialmente a funções de teste sem SEH, setjmp/longjmp, APC, callbacks reentrantes ou instruções não suportadas.
+6. Persistir a pilha de frames guest e o estado de scheduler junto da memória guest e dos objetos necessários. No boot de restauração, reconstruir ponteiros host e recursos, nunca desserializar endereços de função/ponteiros host crus.
+7. Só depois de testes determinísticos em processo separado, ampliar cobertura para SEH, imports reais, threads, APC/fibras e estado de kernel/áudio/vídeo.
+
+### Primeiro protótipo de validação sugerido
+- Criar uma função PPC sintética com sequência aritmética, branch/loop interno e retorno.
+- Executá-la no caminho atual e registrar resultado/estado final de referência.
+- Executar a variante resumível em pequenos quanta, serializando o frame em cada pausa; destruir o estado em memória, reconstruir a partir dos bytes serializados e continuar.
+- Comparar registradores finais, memória guest modificada, PC/retorno e número de iterações com a execução de referência.
+- Adicionar casos separados para chamada direta, indireta e import stub; rejeitar explicitamente instruções/caminhos não suportados.
+- O teste decisivo de persistência deve ocorrer em outro processo (ou execução isolada do teste), não apenas copiar uma struct e continuar no mesmo processo.
+
+### Riscos e limites conhecidos
+- Transformar o gerador inteiro em state machine é uma alteração ampla; a primeira prova deve ser um gerador/test fixture mínimo isolado, não recompilar todo o jogo.
+- O conjunto de valores vivos deve ser calculado/validado por bloco; salvar apenas PPCContext não basta se o codegen mantém valores em locais.
+- SEH, exceções C++, setjmp/longjmp, mid-asm hooks, imports com efeitos colaterais, callbacks/APCs e sincronização concorrente exigem protocolos próprios.
+- Fibers Android ARM64 permanecem úteis para pausa cooperativa intra-processo, mas não são o formato de persistência.
+- Nenhuma alteração foi feita no caminho de execução normal nem no app Resident Evil. Nenhuma funcionalidade Save State foi declarada pronta.
