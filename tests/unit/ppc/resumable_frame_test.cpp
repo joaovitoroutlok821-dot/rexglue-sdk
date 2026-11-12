@@ -262,9 +262,7 @@ TEST_CASE("Resumable PPC subset handles CTR one and zero instruction budget",
   CHECK(program->Run(frame, 1) == rex::ppc::ResumableRunResult::Completed);
 }
 
-
-TEST_CASE("Sealed FunctionNode can compile through resumable adapter",
-          "[codegen][ppc][resumable_program]") {
+TEST_CASE("FunctionNode resumable adapter", "[codegen][ppc][resumable_program]") {
   constexpr uint32_t function_address = 0x82007000;
   std::array<rex::codegen::ppc::Instruction, 4> instructions{};
   constexpr std::array<uint32_t, 4> words = {
@@ -283,12 +281,11 @@ TEST_CASE("Sealed FunctionNode can compile through resumable adapter",
     decoded.push_back(&instructions[index]);
   }
 
-  rex::codegen::FunctionNode function(
-      function_address, static_cast<uint32_t>(words.size() * sizeof(uint32_t)),
-      rex::codegen::FunctionAuthority::DISCOVERED);
-  function.discover(
-      {{function_address, static_cast<uint32_t>(words.size() * sizeof(uint32_t))}},
-      std::move(decoded), {});
+  using rex::codegen::FunctionAuthority;
+  using rex::codegen::FunctionNode;
+  const uint32_t function_size = static_cast<uint32_t>(words.size() * sizeof(uint32_t));
+  FunctionNode function(function_address, function_size, FunctionAuthority::DISCOVERED);
+  function.discover({{function_address, function_size}}, std::move(decoded), {});
   function.seal();
 
   auto program = rex::codegen::CompileResumableFunction(function);
