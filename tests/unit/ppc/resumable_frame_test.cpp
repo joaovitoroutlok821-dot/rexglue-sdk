@@ -11,6 +11,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <rex/codegen/resumable_function.h>
 #include <rex/ppc/resumable_frame.h>
 #include <rex/ppc/resumable_program.h>
 
@@ -259,4 +260,48 @@ TEST_CASE("Resumable PPC subset handles CTR one and zero instruction budget",
   CHECK(frame.ctr == 0);
   CHECK(frame.resume_pc == function_address + 8);
   CHECK(program->Run(frame, 1) == rex::ppc::ResumableRunResult::Completed);
+}
+
+
+TEST_CASE("Sealed FunctionNode can compile through resumable adapter",
+          "[codegen][ppc][resumable_program]") {
+  constexpr uint32_t function_address = 0x82007000;
+  std::array<rex::codegen::ppc::Instruction, 4> instructions{};
+  constexpr std::array<uint32_t, 4> words = {
+      0x38600000,
+      0x38630001,
+      0x4200FFFC,
+      0x4E800020,
+  };
+
+  std::vector<rex::codegen::ppc::Instruction*> decoded;
+  decoded.reserve(instructions.size());
+  for (size_t index = 0; index < instructions.size(); ++index) {
+    instructions[index].address =
+        function_address + static_cast<uint32_t>(index * sizeof(uint32_t));
+    instructions[index].code = words[index];
+    decoded.push_back(&instructions[index]);
+  }
+
+  rex::codegen::FunctionNode function(
+      function_address, static_cast<uint32_t>(words.size() * sizeof(uint32_t)),
+      rex::codegen::FunctionAuthority::DISCOVERED);
+  function.discover(
+      {{function_address, static_cast<uint32_t>(words.size() * sizeof(uint32_t))}},
+      std::move(decoded), {});
+  function.seal();
+
+  auto program = rex::codegen::CompileResumableFunction(function);
+  REQUIRE(program.has_value());
+  CHECK(program->function_address() == function_address);
+  CHECK(program->instruction_count() == words.size());
+
+  ResumableFrame frame;
+  frame.function_address = function_address;
+  frame.resume_pc = function_address;
+  frame.ctr = 3;
+  CHECK(program->Run(frame, 2) == rex::ppc::ResumableRunResult::Yielded);
+  CHECK(program->Run(frame, 2) == rex::ppc::ResumableRunResult::Completed);
+  CHECK(frame.gpr[3] == 3);
+  CHECK(frame.ctr == 0);
 }
