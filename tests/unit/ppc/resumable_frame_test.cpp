@@ -147,7 +147,6 @@ TEST_CASE("Resumable frame rejects unsupported versions and malformed payloads",
   CHECK_FALSE(invalid_cr_snapshot.has_value());
 }
 
-
 TEST_CASE("Resumable PPC subset executes and resumes decoded guest instructions",
           "[ppc][resumable_frame][resumable_program]") {
   constexpr uint32_t function_address = 0x82003000;
