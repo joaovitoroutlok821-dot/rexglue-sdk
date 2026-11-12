@@ -594,3 +594,20 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
   - Lint & Format Check #142: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43262855562 — em andamento na última consulta.
 - O teste unitário #35 já havia passado, validando compilação e execução dos dois testes negativos; #37 valida o ajuste de formatação mais recente.
 - Nenhuma mudança no runtime, dispatcher, codegen normal ou APK funcional do Resident Evil. O adaptador segue experimental e Save State completo ainda não existe.
+
+## 2026-11-12 — Guest Frame Unit Tests #37 aprovado e validação de limites de endereço
+
+- Guest Frame Prototype Unit Tests #37 concluiu com sucesso no commit `4597e071feb750ba8552219024ba3c151b0e9a84`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43262855538
+- O job completou checkout, configuração C++23, build dos testes unitários e execução do CTest. O Lint & Format Check #142 também passou: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43262855562
+- Revisão do compilador experimental encontrou uma condição de limite excessivamente restritiva: o cálculo anterior rejeitava até uma função de uma única instrução em `0xFFFFFFFC`, embora esse seja o último endereço PPC de instrução alinhado representável em 32 bits.
+- Corrigida a validação para verificar o endereço da última instrução (`words.size() - 1`) em vez de exigir que o endereço exclusivo final caiba em `uint32_t`. O cálculo do fim da função para validar branches continua em `int64_t`.
+- Commit da correção: `cb9fedb6154d853520a3c2c92e963c76ffb560ef`.
+- Adicionado teste que:
+  - rejeita endereço zero;
+  - rejeita endereço base desalinhado;
+  - rejeita duas instruções que ultrapassariam o espaço de endereços guest;
+  - aceita uma instrução `blr` em `0xFFFFFFFC` e a executa até `Completed`.
+- Commit do teste: `b5de52c403736955792662d3fa86a41c17ca4bf5`.
+- Os novos workflows disparados por esses commits ainda precisam terminar. Não considerar os novos casos aprovados até verificar Guest Frame Unit Tests e Lint.
+- Próxima etapa após CI verde: construir uma fixture de referência controlada para comparar resultados de execução do subconjunto resumível com semântica PPC de referência. Isso ainda não equivale a executar o C++ emitido por `FunctionNode::emitCpp()`; qualquer comparação deve explicitar esse limite. Não integrar ao runtime nem ao APK funcional do Resident Evil nesta fase.
+- Estado do projeto: o adaptador e executor continuam experimentais e limitados a `addi`, `bdnz` e `blr`. Não existe ainda Save State completo, persistência de memória guest/threads/kernel ou restauração após fechar e reabrir o aplicativo.
