@@ -416,3 +416,51 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - As duas execuções estavam em andamento na última consulta. Consultar seus resultados antes de considerar o ajuste validado.
 - O run #17 ainda estava em andamento e pertence ao commit anterior; não substitui a validação do commit #18.
 - O frame continua sendo um protótipo parcial, e a fixture de retomada continua manual em C++: ainda não há emissão PPC resumível real nem Save State completo. Não alterar o caminho padrão nem integrar ao APK funcional do RECVX nesta fase.
+
+
+## 2026-11-12 — Primeiro executor resumível de um subconjunto real de instruções PPC
+
+### Implementação isolada
+- Criado `include/rex/ppc/resumable_program.h`, com `ResumableProgram::Compile()` e `Run()`.
+- O compilador experimental recebe palavras de instrução PPC em ordem arquitetural e as valida antes de criar uma sequência interna de operações com endereços guest explícitos.
+- Subconjunto implementado:
+  - `addi`: escreve GPR usando o valor zero especial quando RA=0 e imediato signed de 16 bits.
+  - `bdnz`: decrementa CTR e escolhe o endereço de destino relativo ou o próximo PC.
+  - `blr`: termina a execução resumível.
+- Instruções não suportadas, branches absolutos/com link, variantes de branch diferentes de bdnz e destinos fora da função são rejeitados; não são aproximados nem silenciosamente ignorados.
+- `Run(frame, instruction_budget)` executa um número limitado de instruções e retorna `Yielded`, `Completed` ou `Invalid`. O PC guest e os registradores usados permanecem no `ResumableFrame`.
+- O programa é reconstruível a partir do código guest; o snapshot persiste o frame, não ponteiros host nem o vetor interno de operações.
+- Esta via é independente e experimental. Ainda **não está conectada a `FunctionNode::emitCpp()`, ao dispatcher nem ao runtime normal**. É um executor de um subconjunto PPC, não ainda um gerador de código C++ resumível nem um Save State completo.
+
+### Teste de execução PPC e retomada
+- Expandido `tests/unit/ppc/resumable_frame_test.cpp` com um pequeno programa PPC codificado em palavras reais:
+  - `addi r3, r0, 0`
+  - `addi r3, r3, 1`
+  - `bdnz` voltando à segunda instrução
+  - `blr`
+- O teste executa duas instruções, serializa o frame, destrói o objeto original, reconstrói o frame dos bytes e continua em quanta até o retorno. O resultado esperado é GPR3=5 e CTR=0.
+- Outro teste verifica a rejeição de instrução não suportada e branch para fora da função.
+- O workflow Guest Frame foi atualizado para monitorar `include/rex/ppc/resumable_program.h`.
+
+### Commits e CI
+- Novo executor: `057995237458c892084fbd105e3745a643516f19`.
+- Inclusão explícita de `<cstddef>`: `495f6c04aeee03faea65c5c91af48ba3d08e34c0`.
+- Teste PPC inicial: `02016c454ea68e409ede72f34eda2926b4aa7219`.
+- Ajustes de includes e filtro do workflow: `e25531ebfa711527998708dc862a3011cb1cd3a0`.
+- Ajustes de formatação e asserções: `b02805d98ed763b18406be28dcacb4f89d434935`, `3c635daabb4e4a8635ca10611ac6779824b91d2a` e `5dd23da8057595a29d950df2e336b161fae09ccf`.
+- Lint & Format Check #119 passou no commit final acima: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43146012721
+- Guest Frame Prototype Unit Tests #24 ainda estava em andamento na última consulta: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43146012663
+- Não considerar a execução PPC validada até o workflow #24 compilar e executar os testes com sucesso.
+
+### Próxima etapa após CI verde
+1. Confirmar o workflow #24.
+2. Adicionar casos de teste para imediato negativo, CTR=1 e orçamento de execução zero.
+3. Só depois planejar a ponte opt-in que extrai instruções dos blocos reais de uma `FunctionNode`; manter o codegen padrão intacto.
+4. Expandir instruções e fluxo de chamadas em passos pequenos, com rejeição explícita de operações sem semântica resumível.
+5. Não integrar ao Resident Evil até haver equivalência PPC suficiente e teste de restauração em processo separado.
+
+### Limites que permanecem
+- O executor atual cobre apenas `addi`, `bdnz` e `blr`.
+- A retomada do teste ocorre no mesmo processo, após reconstruir o frame a partir dos bytes; ainda não prova encerramento/reabertura do aplicativo.
+- Não inclui FPR, VMX, memória guest, scheduler, threads, estado de kernel, áudio, vídeo, imports, chamadas PPC aninhadas, SEH ou callbacks.
+- O caminho normal do SDK e o APK funcional do RECVX não foram modificados.
