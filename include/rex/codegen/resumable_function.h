@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <rex/codegen/function_node.h>
-#include <rex/codegen/ppc/instruction.h>
+#include "codegen/ppc/instruction.h"
 #include <rex/ppc/resumable_program.h>
 
 namespace rex::codegen {
