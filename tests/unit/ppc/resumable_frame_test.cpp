@@ -370,9 +370,7 @@ TEST_CASE("FunctionNode resumable adapter rejects call edges",
   CHECK_FALSE(rex::codegen::CompileResumableFunction(*function).has_value());
 }
 
-
-TEST_CASE("Resumable PPC compiler validates guest address boundaries",
-          "[ppc][resumable_program]") {
+TEST_CASE("Resumable PPC compiler validates guest address boundaries", "[ppc][resumable_program]") {
   constexpr std::array<uint32_t, 1> return_instruction = {0x4E800020};
   constexpr std::array<uint32_t, 2> two_instructions = {0x4E800020, 0x4E800020};
 
