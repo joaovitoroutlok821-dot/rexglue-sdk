@@ -373,3 +373,6 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
   - Guest Frame Prototype Unit Tests #14: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43141340967
   - Lint & Format Check #102: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43141341027
 - A aprovação do Lint #101 valida formatação do estado anterior ao último ajuste do teste; o resultado definitivo do commit atual depende dos workflows #14 e #102.
+
+
+- O Lint #102 apontou mais uma quebra de linha na chamada usada pelo teste de payload truncado/excedente. O teste foi ajustado no commit `5fcb58abf9e5efaa29f8672df2cf61d91129fe5e`; os workflows disparados por esse commit são a validação definitiva pendente.
