@@ -642,3 +642,13 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Commit do teste: `635fdf3772eb807f81c1905384ebd481d1a0fe2d`.
 - Este é um teste diferencial de uma fixture pequena e de um subconjunto PPC restrito. Não compara com o C++ emitido por `FunctionNode::emitCpp()`, nem valida calls, FPR/VMX, memória guest, threads ou o runtime do jogo.
 - Os workflows de CI disparados pelo commit ainda precisam passar antes de considerar a fixture validada.
+
+
+### Comparação diferencial PPC aprovada pela CI — 2026-11-12
+- Guest Frame Prototype Unit Tests #41 passou no commit `635fdf3772eb807f81c1905384ebd481d1a0fe2d`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43267780380
+- Lint & Format Check #151 também passou no mesmo commit: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43267780491
+- Lint & Format Check #152 passou no commit de documentação anterior `ab4484aa11ef082fc18977635dcc3ee4690c3565`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43267801436
+- A fixture diferencial está validada pela CI: para o subconjunto `addi`, `bdnz` e `blr`, a execução resumível com yields e serialize/deserialize produz os mesmos GPRs, CTR e PC final que o interpretador de referência independente, nos valores de CTR testados (1, 2, 5 e 17).
+- Limite: a referência ainda é um interpretador independente da fixture, não o C++ AOT produzido por `FunctionNode::emitCpp()`. Não prova equivalência geral do codegen nem compatibilidade com o jogo real.
+- Próxima investigação: criar um harness que capture e execute uma função C++ efetivamente emitida por `FunctionNode::emitCpp()`, com os mesmos registradores/contexto guest e helpers necessários, e comparar o estado observável com a semântica PPC de referência. Antes de implementar, mapear a assinatura/macros `REX_FUNC`, o tipo de contexto usado pelo código emitido e as dependências de helpers; não alterar o caminho de produção.
+- Estado: adaptador e executor permanecem opt-in e experimentais. Não há Save State completo, snapshot da memória guest, persistência/restauração de threads/kernel, nem integração com o runtime ou APK funcional do Resident Evil.
