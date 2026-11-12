@@ -483,3 +483,38 @@ TEST_CASE("Resumable PPC compiler validates guest address boundaries", "[ppc][re
   frame.resume_pc = 0xFFFFFFFC;
   CHECK(program->Run(frame, 1) == rex::ppc::ResumableRunResult::Completed);
 }
+
+
+TEST_CASE("FunctionNode emits synthetic PPC function with materialized locals",
+          "[codegen][ppc][resumable_program]") {
+  constexpr uint32_t function_address = 0x8200B000;
+  // addi r11, r0, 1
+  // blr
+  constexpr std::array<uint8_t, 8> code = {
+      0x39, 0x60, 0x00, 0x01, 0x4E, 0x80, 0x00, 0x20,
+  };
+
+  rex::codegen::TestModule module;
+  module.Load(function_address, code.data(), code.size());
+  const auto binary = rex::codegen::BinaryView::fromModule(module);
+
+  rex::codegen::RecompilerConfig config;
+  config.nonArgumentRegistersAsLocalVariables = true;
+  rex::codegen::FunctionGraph graph;
+  rex::codegen::EmitContext emit_context{binary, config, graph, function_address};
+
+  constexpr uint32_t function_size = static_cast<uint32_t>(code.size());
+  rex::codegen::FunctionNode function(function_address, function_size,
+                                      rex::codegen::FunctionAuthority::DISCOVERED);
+  function.setName("test_generated_resumable_candidate");
+  function.discover({{function_address, function_size}}, {}, {});
+  function.seal();
+
+  const std::string generated = function.emitCpp(emit_context);
+
+  CHECK(generated.find("DEFINE_REX_FUNC(test_generated_resumable_candidate)") !=
+        std::string::npos);
+  CHECK(generated.find("PPCRegister r11{};") != std::string::npos);
+  CHECK(generated.find("r11.s64 = 1;") != std::string::npos);
+  CHECK(generated.find("return;") != std::string::npos);
+}
