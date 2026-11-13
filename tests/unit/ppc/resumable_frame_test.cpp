@@ -17,6 +17,7 @@
 #include <rex/codegen/test_support.h>
 #include <rex/codegen/resumable_function.h>
 #include <rex/ppc/resumable_frame.h>
+#include <rex/ppc/resumable_liveness.h>
 #include <rex/ppc/resumable_program.h>
 
 namespace {
@@ -518,4 +519,75 @@ TEST_CASE("FunctionNode emits synthetic PPC function with materialized locals",
   CHECK(generated.find("PPCRegister r11{};") != std::string::npos);
   CHECK(generated.find("r11.s64 = 1;") != std::string::npos);
   CHECK(generated.find("return;") != std::string::npos);
+}
+
+TEST_CASE("Resumable GPR liveness tracks straight-line definitions and uses",
+          "[ppc][resumable_frame][resumable_liveness]") {
+  constexpr uint32_t base = 0x8200B000;
+  // addi r3,r0,7; addi r4,r3,1; blr
+  constexpr std::array<uint32_t, 3> code = {0x38600007, 0x38830001, 0x4E800020};
+  const auto analysis = rex::ppc::AnalyzeResumableGprLiveness(base, code);
+  REQUIRE(analysis.has_value());
+  REQUIRE(analysis->size() == code.size());
+
+  CHECK((*analysis)[0].live_in.none());
+  CHECK((*analysis)[0].live_out.test(3));
+  CHECK((*analysis)[1].live_in.test(3));
+  CHECK((*analysis)[1].live_out.none());
+  CHECK((*analysis)[2].live_in.none());
+}
+
+TEST_CASE("Resumable GPR liveness unions conditional branch successors",
+          "[ppc][resumable_frame][resumable_liveness]") {
+  constexpr uint32_t base = 0x8200B100;
+  // r3 is read at the branch target. The fall-through path overwrites r3
+  // before the join, so the old r3 is live only along the taken edge.
+  constexpr std::array<uint32_t, 5> code = {
+      0x38600001,  // addi r3,r0,1
+      0x42000008,  // bdnz +8 -> instruction at +12
+      0x38600002,  // addi r3,r0,2
+      0x38A30000,  // addi r5,r3,0
+      0x4E800020,  // blr
+  };
+  const auto analysis = rex::ppc::AnalyzeResumableGprLiveness(base, code);
+  REQUIRE(analysis.has_value());
+
+  CHECK((*analysis)[1].live_out.test(3));
+  CHECK((*analysis)[1].live_in.test(3));
+  CHECK_FALSE((*analysis)[2].live_in.test(3));
+  CHECK((*analysis)[3].live_in.test(3));
+}
+
+TEST_CASE("Resumable GPR liveness reaches a fixed point across loops",
+          "[ppc][resumable_frame][resumable_liveness]") {
+  constexpr uint32_t base = 0x8200B200;
+  // addi r3,r0,0; addi r3,r3,1; bdnz back to the second instruction;
+  // addi r4,r3,0; blr
+  constexpr std::array<uint32_t, 5> code = {
+      0x38600000,
+      0x38630001,
+      0x4200FFFC,
+      0x38830000,
+      0x4E800020,
+  };
+  const auto analysis = rex::ppc::AnalyzeResumableGprLiveness(base, code);
+  REQUIRE(analysis.has_value());
+
+  CHECK((*analysis)[1].live_in.test(3));
+  CHECK((*analysis)[2].live_out.test(3));
+  CHECK((*analysis)[3].live_in.test(3));
+}
+
+TEST_CASE("Resumable GPR liveness rejects unmodeled instructions and targets",
+          "[ppc][resumable_frame][resumable_liveness]") {
+  constexpr uint32_t base = 0x8200B300;
+  constexpr std::array<uint32_t, 2> unsupported = {0x60000000, 0x4E800020};
+  CHECK_FALSE(rex::ppc::AnalyzeResumableGprLiveness(base, unsupported).has_value());
+
+  constexpr std::array<uint32_t, 2> out_of_range_branch = {
+      0x48000010,  // b +16, outside this function
+      0x4E800020,
+  };
+  CHECK_FALSE(
+      rex::ppc::AnalyzeResumableGprLiveness(base, out_of_range_branch).has_value());
 }
