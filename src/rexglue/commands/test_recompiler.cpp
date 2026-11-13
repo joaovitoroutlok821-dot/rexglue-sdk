@@ -347,6 +347,9 @@ bool RecompileTests(std::string_view binDir, std::string_view asmDir, std::strin
 
     codegen::RecompilerConfig config;
     config.outDirectoryPath = std::string(outDir);
+    // Exercise a localized GPR in the dedicated AOT runtime fixture only.
+    // Keep the rest of the instruction suite on its default codegen settings.
+    config.nonArgumentRegistersAsLocalVariables = (stem == "seq_aot_runtime");
     auto ctx =
         codegen::CodegenContext::Create(codegen::BinaryView::fromModule(module), std::move(config));
 
