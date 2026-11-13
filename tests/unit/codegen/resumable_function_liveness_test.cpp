@@ -13,10 +13,11 @@
 TEST_CASE("FunctionNode liveness adapter analyzes decoded contiguous instructions",
           "[codegen][ppc][resumable_liveness]") {
   constexpr uint32_t base = 0x82008000;
-  constexpr std::array<uint32_t, 4> words = {
+  constexpr std::array<uint32_t, 5> words = {
       0x38600000,  // addi r3,r0,0
       0x38830001,  // addi r4,r3,1
       0x4200FFFC,  // bdnz back to the second instruction
+      0x38A40001,  // addi r5,r4,1
       0x4E800020,  // blr
   };
 
