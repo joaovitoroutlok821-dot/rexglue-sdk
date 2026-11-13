@@ -738,3 +738,21 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - O pipeline de teste permite adicionar uma opção estritamente de teste para emitir uma segunda variante com registradores localizados, sem alterar a configuração padrão nem o runtime de produção. Essa variante deve confirmar primeiro a saída gerada e depois ser compilada/executada com uma fixture em que um valor local precise sobreviver até o retorno.
 - Direção segura: acrescentar uma variante de teste AOT com localização de registradores explicitamente habilitada e comparar os resultados observáveis com a variante padrão. Em seguida, projetar um mecanismo opt-in de safepoint que faça spill explícito para um frame/contexto antes do yield. Não inserir yield arbitrário em funções C++ e não presumir que os locais podem ser restaurados pelo `PPCContext`.
 - Não houve alteração no codegen de produção, dispatcher, runtime, APK do Resident Evil ou Pac-Man. O Save State continua experimental e incompleto; ainda faltam safepoints reais, estado FPR/VMX abrangente, memória guest, scheduler/threads/kernel e persistência segura.
+
+
+### Variante AOT com GPR localizado — 2026-11-13
+
+- O teste anterior confirmou execução AOT usando a configuração padrão, mas não exercitava GPRs em variáveis locais. Foi criada uma variante dedicada, isolada do restante da suíte.
+- Em `src/rexglue/commands/test_recompiler.cpp`, somente para o stem `seq_aot_runtime`, o pipeline de teste ativa `config.nonArgumentRegistersAsLocalVariables = true`. Os demais arquivos de instruções continuam usando a configuração padrão.
+- A fixture `tests/ppc/asm/seq_aot_runtime.s` foi alterada para:
+  - receber r3 = 0x29;
+  - executar `addi r11, r3, 7`, mantendo o resultado intermediário em r11 localizado;
+  - executar `addi r3, r11, 0`, lendo o valor local e copiando-o para o registrador de saída observável;
+  - retornar e validar r3 = 0x30.
+- O teste CTest foi renomeado para `aot_runtime_localized_gpr` no workflow. A validação precisa confirmar que o C++ gerado declara e usa `PPCRegister r11{}`, compila e executa a função e produz r3 = 0x30.
+- Commits da alteração:
+  - configuração de teste: `d6ceed03a1639d7be4503b7a69a4323ed80fb9ef`;
+  - fixture: `b3dc244534971a879af982ab72c4a9b298763718`;
+  - filtro CTest do workflow: `4c158f6139de9c5611f84e0b8be6e61c1af112e6`.
+- Status: CI desta variante ainda precisa terminar. Não declarar a execução localizada aprovada até confirmar o CTest `ppc.seq.test_aot_runtime_localized_gpr`.
+- Escopo: isso valida o uso e a leitura de um GPR local dentro de uma chamada AOT completa. Não salva/restaura esse local em um ponto intermediário, não cria safepoint e não demonstra que o valor pode ser serializado. Nenhuma alteração no codegen de produção, runtime, dispatcher ou APK funcional.
