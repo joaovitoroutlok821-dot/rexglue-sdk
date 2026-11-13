@@ -1,0 +1,8 @@
+test_aot_runtime_addi:
+  #_ REGISTER_IN r3 0x0000000000000029
+
+  addi r11, r3, 7
+  blr
+
+  #_ REGISTER_OUT r3 0x0000000000000029
+  #_ REGISTER_OUT r11 0x0000000000000030
