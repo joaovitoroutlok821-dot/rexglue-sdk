@@ -756,3 +756,22 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
   - filtro CTest do workflow: `4c158f6139de9c5611f84e0b8be6e61c1af112e6`.
 - Status: CI desta variante ainda precisa terminar. Não declarar a execução localizada aprovada até confirmar o CTest `ppc.seq.test_aot_runtime_localized_gpr`.
 - Escopo: isso valida o uso e a leitura de um GPR local dentro de uma chamada AOT completa. Não salva/restaura esse local em um ponto intermediário, não cria safepoint e não demonstra que o valor pode ser serializado. Nenhuma alteração no codegen de produção, runtime, dispatcher ou APK funcional.
+
+### Variante AOT com GPR localizado aprovada — 2026-11-13
+
+- Guest Frame Prototype Unit Tests #48 concluiu com sucesso no commit `4c158f6139de9c5611f84e0b8be6e61c1af112e6`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43470847152
+- O log foi conferido: o CTest executou explicitamente `ppc.seq.test_aot_runtime_localized_gpr`, que passou (1/1; 0 falhas). O job compilou e linkou `ppc_tests` antes de executar a fixture.
+- Lint & Format Check #167 passou no mesmo commit: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43470847989
+- Lint & Format Check #168 também passou no commit de documentação `651d6d74f8e7d7444505d87eadf9fb324528a48d`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43470885033
+- Resultado técnico: a fixture executada com `nonArgumentRegistersAsLocalVariables = true` mantém o valor intermediário em `r11` local, lê esse valor na instrução seguinte, copia-o para r3 e valida r3 = 0x30. Portanto, o C++ AOT emitido foi compilado e executado com um GPR localizado real.
+- Limite explícito: o local vive somente durante a chamada completa. Não há interrupção, spill serializável, yield ou restauração intermediária. Isso ainda não é Save State.
+
+### Auditoria inicial para desenho de safepoints — 2026-11-13
+
+- Revisados `src/codegen/builders/builder_context.h` e `src/codegen/builders/context.cpp`.
+- `RecompilerLocalVariables` registra quais GPRs/FPRs/VMX/CR/CTR/XER e temporários precisam de declaração local durante a geração. Os accessors `r()`, `f()`, `v()`, `cr()`, `ctr()` e `xer()` marcam o uso/localização, mas essa estrutura não é uma análise de liveness: ela não diz se o valor está inicializado nem se ainda está vivo em um ponto específico.
+- Os temporários `temp`, `vTemp`, `env` e `ea` também são declarados como locais quando solicitados. Não é seguro serializar indiscriminadamente toda variável marcada sem determinar inicialização, definição e vida no ponto de checkpoint.
+- O emissor gera controle de fluxo C++ com labels/gotos, chamadas C++ para outras funções PPC e retornos. Um safepoint real precisa associar um PC guest exato ao ponto de saída, materializar valores vivos e definir como a execução será retomada sem depender da pilha nativa antiga.
+- Próxima etapa técnica: mapear a análise de blocos/arestas e os pontos onde o codegen conhece cada instrução; especificar uma análise conservadora de valores vivos (inicializados e necessários após cada ponto) para um subconjunto controlado, começando por GPRs. Só depois adicionar emissão opt-in de checkpoint e testes AOT que interrompam, serializem, reconstruam o frame e retomem a função.
+- FPR/VMX, temporários complexos, chamadas/imports, memória guest e threads permanecem fora do primeiro subconjunto até terem cobertura própria.
+- Nenhuma alteração foi feita no codegen de produção, dispatcher, runtime, APK do Resident Evil ou Pac-Man. O protótipo permanece isolado na branch `save-state-frame-prototype`; Save State completo continua não implementado.
