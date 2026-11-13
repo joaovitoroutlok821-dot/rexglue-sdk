@@ -564,11 +564,11 @@ TEST_CASE("Resumable GPR liveness reaches a fixed point across loops",
   // addi r3,r0,0; addi r3,r3,1; bdnz back to the second instruction;
   // addi r4,r3,0; blr
   constexpr std::array<uint32_t, 5> code = {
-      0x38600000,
-      0x38630001,
-      0x4200FFFC,
-      0x38830000,
-      0x4E800020,
+      0x38600000,  // addi r3,r0,0
+      0x38630001,  // addi r3,r3,1
+      0x4200FFFC,  // bdnz back to the second instruction
+      0x38830000,  // addi r4,r3,0
+      0x4E800020,  // blr
   };
   const auto analysis = rex::ppc::AnalyzeResumableGprLiveness(base, code);
   REQUIRE(analysis.has_value());
@@ -588,6 +588,5 @@ TEST_CASE("Resumable GPR liveness rejects unmodeled instructions and targets",
       0x48000010,  // b +16, outside this function
       0x4E800020,
   };
-  CHECK_FALSE(
-      rex::ppc::AnalyzeResumableGprLiveness(base, out_of_range_branch).has_value());
+  CHECK_FALSE(rex::ppc::AnalyzeResumableGprLiveness(base, out_of_range_branch).has_value());
 }
