@@ -825,3 +825,23 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Os comentários da fixture foram alinhados e a asserção foi colocada no formato exigido.
 - Commit corretivo: `472ee22536cd27e164357d6282afcc15726ad868`.
 - Aguardar nova execução do lint e do Guest Frame Prototype Unit Tests após esse commit. O resultado de compilação/execução dos novos testes ainda não está confirmado.
+
+
+### Adaptador de liveness GPR para FunctionNode real — 2026-11-13
+
+- O Guest Frame Prototype Unit Tests #51 terminou com sucesso no commit `472ee22536cd27e164357d6282afcc15726ad868`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43482572757
+- Lint & Format Check #175 passou no commit de código `472ee22536cd27e164357d6282afcc15726ad868`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43482573131
+- Lint & Format Check #176 passou no commit de documentação `343dce1a6aa6f1ba56da2b8675e94b2e50eb73c2`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43482599117
+- Criado `include/rex/codegen/resumable_function_liveness.h`, com `AnalyzeResumableFunctionGprLiveness(const FunctionNode&)`. O adaptador exige FunctionNode selado, não import, exatamente um bloco contíguo cobrindo a função, instruções decodificadas em ordem e ausência de chamadas, tail calls, jump tables, branches não resolvidos e exceções.
+- O adaptador extrai as palavras PPC das instruções decodificadas do próprio FunctionNode e delega à análise GPR experimental já existente. Não altera `FunctionAnalysis`, codegen de produção, dispatcher nem runtime.
+- Criado `tests/unit/codegen/resumable_function_liveness_test.cpp`, com fixture de FunctionNode e teste negativo para múltiplos blocos; registrado em `tests/unit/CMakeLists.txt`.
+- O workflow Guest Frame foi ampliado para disparar com alterações no novo cabeçalho e executar a nova suite.
+- Commits desta etapa:
+  - adaptador: `ef2e343c9544c5d590bf8013941ff48ea60e78d8`;
+  - teste: `556411d3f7552e7e66f8980fe493f3819df42518`;
+  - registro no CMake: `bdb9f5c8b56449ce16eb2de88e31f4c8e5d4081a`;
+  - filtro do workflow: `cd80e85f2df0346069725572b0043f99f7af84ab`;
+  - ajuste da fixture para consumir o GPR intermediário: `a78953798d2733c8299f9d911d5892e495994d87`.
+- No momento desta atualização, Guest Frame #52 e Lint #177 para o commit final estão na fila/em execução; os resultados ainda não foram confirmados. Não declarar o adaptador validado até os dois workflows concluírem.
+- Limite: esta é uma análise conservadora de liveness sobre instruções reais decodificadas de uma forma estreita de FunctionNode; ainda não é análise geral de CFG com blocos múltiplos, não cria safepoints, não materializa variáveis locais do C++ AOT e não salva/restaura execução do jogo.
+- Próximo passo após CI verde: investigar como associar a liveness aos pontos de emissão de cada instrução no C++ AOT, mantendo o escopo opt-in e criando uma fixture que valide valores GPR vivos em um checkpoint sintético. Não integrar ao APK RECVX ainda.
