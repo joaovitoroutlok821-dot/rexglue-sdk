@@ -817,3 +817,11 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Limites: análise somente GPR e somente esse subconjunto; não materializa registradores, não emite safepoints, não pausa C++ AOT e não salva memória guest/threads. Não está conectada ao runtime do jogo.
 - Próxima etapa após CI verde: validar os conjuntos calculados; depois ampliar a entrada para instruções PPC decodificadas e blocos reais de `FunctionNode`, mantendo rejeição conservadora. Só depois projetar a emissão opt-in de checkpoint.
 - Decisão de integração RECVX: o acesso futuro ao Save State durante a partida será por overlay sobre o jogo. A implementação do overlay fica bloqueada até existir uma operação de pause/checkpoint/resume segura no runtime; não alterar o APK funcional nesta fase.
+
+
+### Ajuste de formatação dos testes de liveness — 2026-11-13
+
+- O Lint & Format Check #172 detectou somente violações de clang-format no bloco de fixture do loop e numa asserção multilinha em `tests/unit/ppc/resumable_frame_test.cpp`.
+- Os comentários da fixture foram alinhados e a asserção foi colocada no formato exigido.
+- Commit corretivo: `472ee22536cd27e164357d6282afcc15726ad868`.
+- Aguardar nova execução do lint e do Guest Frame Prototype Unit Tests após esse commit. O resultado de compilação/execução dos novos testes ainda não está confirmado.
