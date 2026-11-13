@@ -16,6 +16,11 @@ on:
       - 'tests/unit/ppc/resumable_frame_test.cpp'
       - 'tests/unit/catch2_compat.h'
       - 'tests/unit/CMakeLists.txt'
+      - 'tests/ppc/asm/seq_aot_runtime.s'
+      - 'tests/ppc/CMakeLists.txt'
+      - 'cmake/ppc_test_pipeline.cmake'
+      - 'src/rexglue/commands/test_recompiler.cpp'
+      - 'resources/templates/test/ppc_test_functions_cpp.inja'
       - 'CMakeLists.txt'
       - 'CMakePresets.json'
       - '.github/workflows/guest-frame-prototype-tests.yml'
@@ -62,8 +67,8 @@ jobs:
             -DREXGLUE_USE_VULKAN=ON
 
       - name: Build unit tests
-        run: cmake --build out/build/guest-frame-tests --target unit_tests --parallel 2
+        run: cmake --build out/build/guest-frame-tests --target unit_tests ppc_tests --parallel 2
 
       - name: Run guest frame tests
         run: |
-          ctest --test-dir out/build/guest-frame-tests -R 'guest_call_stack|resumable_frame' --output-on-failure
+          ctest --test-dir out/build/guest-frame-tests -R 'guest_call_stack|resumable_frame|aot_runtime_addi' --output-on-failure
