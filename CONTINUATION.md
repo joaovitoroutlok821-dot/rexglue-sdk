@@ -699,3 +699,22 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
   - `tests/unit/CMakeLists.txt` já liga `unit_tests` a `rexcodegen` e `rexruntime`, mas isso não resolve automaticamente a compilação de uma string gerada em tempo de execução. A estratégia de geração pré-build ou fonte fixture gerada precisa ser escolhida com cuidado.
 - Próximo passo: rastrear a definição de `DEFINE_REX_FUNC`, prologue e dependências de helpers/macros nos templates e fontes do SDK; então criar uma fixture C++ gerada em etapa explícita do build (ou outro mecanismo reprodutível), compilá-la como parte do alvo de testes e invocá-la com `PPCContext` real. Comparar os registradores observáveis com a semântica PPC de referência.
 - Não alterar o codegen de produção, dispatcher, runtime ou APK funcional do Resident Evil nesta etapa. Não suspender função C++ arbitrariamente. Save State completo continua não implementado.
+
+
+### Primeiro fixture PPC para executar C++ AOT gerado — 2026-11-13
+
+- A definição de `DEFINE_REX_FUNC` foi localizada em `resources/templates/codegen/pch_h.inja`; ela pertence ao PCH gerado do projeto, não a `include/rex/ppc/func.h`. O header PCH também define `REX_FUNC_PROLOGUE`, macros de memória e helpers usados pelo código emitido.
+- `include/rex/ppc/func.h` define a assinatura `PPCFunc` como `void(PPCContext&, uint8_t*)` e fornece `REX_FUNC`/`REX_EXTERN`. `include/rex/ppc.h` agrega o contexto e as APIs PPC.
+- Foi encontrado um pipeline reutilizável em `tests/ppc`: compila assembly PPC, linka binário, chama `rexglue recompile-tests`, gera `ppc_test_functions.cpp` com `FunctionNode::emitCpp()`, compila esse C++ gerado e executa as funções com um `PPCContext` real. O pipeline já compara registradores de saída com valores esperados.
+- Criada a fixture `tests/ppc/asm/seq_aot_runtime.s`:
+  - entrada: r3 = 0x29;
+  - instrução: `addi r11, r3, 7`;
+  - retorno: `blr`;
+  - saídas esperadas: r3 permanece 0x29 e r11 = 0x30.
+- A fixture usa o fluxo real de recompilação PPC e é um passo mais forte que o teste textual anterior: se o pipeline passar, comprova que uma função emitida por `FunctionNode::emitCpp()` é compilada e executada e que o estado de registradores observado corresponde ao esperado nessa fixture simples.
+- Atualizado `.github/workflows/guest-frame-prototype-tests.yml` para monitorar a fixture/pipeline, construir também o alvo `ppc_tests` e executar o caso `aot_runtime_addi` junto dos testes Guest Frame.
+- Commits:
+  - fixture assembly: `2ac65f42239cc89f25256c34a43cd8d28cd6f5bf`;
+  - workflow: `10a5ec26958d5499455316c88469571fcd6444ef`.
+- Status: a CI da nova fixture ainda precisa terminar. Não declarar execução AOT aprovada até o job compilar `ppc_tests` e o CTest executar o caso. O teste usa a configuração padrão do recompiler; ainda não testa materialização de registradores locais ativada, checkpoints/safepoints ou retomada.
+- Próxima etapa após CI verde: criar comparação de referência independente para o resultado da função AOT e, depois, uma estratégia explícita de safepoints que materialize valores vivos antes de qualquer yield. Não conectar ao runtime do jogo nem alterar o APK funcional do Resident Evil.
