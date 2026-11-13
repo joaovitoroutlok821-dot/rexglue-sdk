@@ -775,3 +775,19 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Próxima etapa técnica: mapear a análise de blocos/arestas e os pontos onde o codegen conhece cada instrução; especificar uma análise conservadora de valores vivos (inicializados e necessários após cada ponto) para um subconjunto controlado, começando por GPRs. Só depois adicionar emissão opt-in de checkpoint e testes AOT que interrompam, serializem, reconstruam o frame e retomem a função.
 - FPR/VMX, temporários complexos, chamadas/imports, memória guest e threads permanecem fora do primeiro subconjunto até terem cobertura própria.
 - Nenhuma alteração foi feita no codegen de produção, dispatcher, runtime, APK do Resident Evil ou Pac-Man. O protótipo permanece isolado na branch `save-state-frame-prototype`; Save State completo continua não implementado.
+
+### Auditoria do CFG e das semânticas de instrução para liveness — 2026-11-13
+
+- Inspecionados `FunctionNode`, `FunctionGraph`, `FunctionAnalysis`, `Instruction::Semantics`, `get_register_reads()`, `get_register_writes()`, `get_semantics()` e o fluxo de `FunctionNode::seal()`.
+- O `FunctionNode` já retém os ponteiros das instruções decodificadas e os blocos básicos. Cada bloco contém somente `base` e `size`; sucessores não são armazenados no `Block`. Os destinos diretos podem ser recuperados das instruções que têm `branch_target`, enquanto branches indiretos/jump tables exigem tratamento separado.
+- `FunctionAnalysis` atualmente só possui flags gerais de uso de CTR/XER/CR/FPSCR e requisito CSR. No código examinado, `FunctionNode::seal()` instancia a estrutura com valores padrão e não executa análise de liveness.
+- Existe uma API semântica inicial em `Instruction::get_semantics()`, mas ela não é suficiente para liveness geral:
+  - `get_register_reads()` e `get_register_writes()` cobrem apenas formatos D, X, XO e M;
+  - não cobrem adequadamente todos os formatos/instruções PPC, nem representam GPR 0 como registrador constante/zero especial;
+  - `Semantics` inclui algumas flags de LR/CTR/CR e memória, mas não oferece conjuntos completos de leitura/escrita para FPR, VMX, CR fields/bits, XER/FPSCR e demais estados;
+  - instruções de chamada precisam de modelo explícito de efeitos colaterais/clobbers e convenção de chamada; não podem ser tratadas como instruções comuns.
+- Portanto, não reutilizar essas funções como se fossem uma análise completa. O primeiro protótipo deve possuir uma tabela semântica própria e explícita para um subconjunto pequeno de GPR, com leitura/escrita precisas, e rejeitar qualquer opcode não modelado.
+- Algoritmo candidato para o subconjunto: construir sucessores intrabloco/interbloco a partir de branches diretos resolvidos, fall-through condicional e terminação; calcular `use`/`def` por bloco e iterar `liveOut[B] = união(liveIn[succ])`, `liveIn[B] = use[B] união (liveOut[B] - def[B])`; depois percorrer instruções ao contrário para obter conjuntos vivos por PC.
+- Regras de segurança para a primeira versão: rejeitar instruções desconhecidas/não suportadas, branches indiretos sem jump table resolvida, blocos com destinos ausentes, chamadas, exceções/SEH, e qualquer instrução que altere estado fora do conjunto GPR modelado. Não emitir safepoints ainda.
+- Próximo passo de implementação: criar tipos isolados de análise de liveness experimental (sem modificar `FunctionAnalysis` de produção), implementar apenas o subconjunto PPC necessário às fixtures sintéticas, e testar casos de definição antes/depois do uso, valores vivos através de branch condicional, loops e junção de blocos. Comparar os conjuntos calculados com resultados esperados explícitos.
+- Nenhuma mudança no codegen de produção, dispatcher, runtime ou APK. O jogo funcional permanece intacto. A análise atual é uma auditoria de estruturas existentes, não uma implementação de liveness nem de Save State.
