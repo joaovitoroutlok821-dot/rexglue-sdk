@@ -718,3 +718,23 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
   - workflow: `10a5ec26958d5499455316c88469571fcd6444ef`.
 - Status: a CI da nova fixture ainda precisa terminar. Não declarar execução AOT aprovada até o job compilar `ppc_tests` e o CTest executar o caso. O teste usa a configuração padrão do recompiler; ainda não testa materialização de registradores locais ativada, checkpoints/safepoints ou retomada.
 - Próxima etapa após CI verde: criar comparação de referência independente para o resultado da função AOT e, depois, uma estratégia explícita de safepoints que materialize valores vivos antes de qualquer yield. Não conectar ao runtime do jogo nem alterar o APK funcional do Resident Evil.
+
+
+
+### Primeira execução real do C++ AOT aprovada pela CI — 2026-11-13
+
+- Guest Frame Prototype Unit Tests #45 passou no commit `10a5ec26958d5499455316c88469571fcd6444ef`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43405360892
+- Lint & Format Check #162 passou no mesmo commit: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43405360814
+- Lint & Format Check #163 também passou após a atualização de documentação no commit `ba14c652f69ed73fd0a48fdaab2c717803cbe71a`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43405386009
+- O job #45 concluiu todas as etapas: checkout/submódulos, dependências, verificação C++23, configuração, build de `unit_tests` e `ppc_tests`, e execução CTest.
+- Verificação do log: `ppc.seq.test_aot_runtime_addi` foi efetivamente executado e passou (1/1 teste; 0 falhas). O pipeline montou `ppc_test_functions.cpp` e `ppc_test_cases.cpp`, compilou os fontes gerados e linkou o executável `ppc_tests`.
+- A fixture `seq_aot_runtime.s` inicializa r3=0x29, executa `addi r11,r3,7`, retorna com `blr`, e confirma r3=0x29 e r11=0x30. Portanto, o código emitido pelo `FunctionNode::emitCpp()` foi compilado e executado com `PPCContext` real para esse caso.
+- Limite: o teste usa a configuração padrão de `RecompilerConfig`; não força GPRs locais nem valida checkpoint/yield/resume. É prova de execução AOT de uma fixture simples, não de Save State ou equivalência geral do jogo.
+
+### Próxima investigação do codegen — 2026-11-13
+
+- Revisado o caminho de configuração do pipeline em `src/rexglue/commands/test_recompiler.cpp`: atualmente ele cria `RecompilerConfig config;` com valores padrão e apenas define `outDirectoryPath`. Assim, a fixture AOT aprovada não exercita explicitamente `nonArgumentRegistersAsLocalVariables` nem as demais opções de localização.
+- Revisados novamente `BuilderContext::r/f/v/cr/ctr/xer` em `src/codegen/builders/context.cpp`: cada accessor pode retornar `ctx.*` ou uma variável C++ local e marca a variável em `RecompilerLocalVariables`. Os temporários `temp`, `vTemp`, `env` e `ea` também são locais.
+- O pipeline de teste permite adicionar uma opção estritamente de teste para emitir uma segunda variante com registradores localizados, sem alterar a configuração padrão nem o runtime de produção. Essa variante deve confirmar primeiro a saída gerada e depois ser compilada/executada com uma fixture em que um valor local precise sobreviver até o retorno.
+- Direção segura: acrescentar uma variante de teste AOT com localização de registradores explicitamente habilitada e comparar os resultados observáveis com a variante padrão. Em seguida, projetar um mecanismo opt-in de safepoint que faça spill explícito para um frame/contexto antes do yield. Não inserir yield arbitrário em funções C++ e não presumir que os locais podem ser restaurados pelo `PPCContext`.
+- Não houve alteração no codegen de produção, dispatcher, runtime, APK do Resident Evil ou Pac-Man. O Save State continua experimental e incompleto; ainda faltam safepoints reais, estado FPR/VMX abrangente, memória guest, scheduler/threads/kernel e persistência segura.
