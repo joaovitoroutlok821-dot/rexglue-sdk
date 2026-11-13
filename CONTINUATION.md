@@ -791,3 +791,29 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Regras de segurança para a primeira versão: rejeitar instruções desconhecidas/não suportadas, branches indiretos sem jump table resolvida, blocos com destinos ausentes, chamadas, exceções/SEH, e qualquer instrução que altere estado fora do conjunto GPR modelado. Não emitir safepoints ainda.
 - Próximo passo de implementação: criar tipos isolados de análise de liveness experimental (sem modificar `FunctionAnalysis` de produção), implementar apenas o subconjunto PPC necessário às fixtures sintéticas, e testar casos de definição antes/depois do uso, valores vivos através de branch condicional, loops e junção de blocos. Comparar os conjuntos calculados com resultados esperados explícitos.
 - Nenhuma mudança no codegen de produção, dispatcher, runtime ou APK. O jogo funcional permanece intacto. A análise atual é uma auditoria de estruturas existentes, não uma implementação de liveness nem de Save State.
+
+
+### Protótipo inicial de liveness GPR para safepoints — 2026-11-13
+
+- Criado `include/rex/ppc/resumable_liveness.h`, isolado de `FunctionAnalysis` e do codegen de produção.
+- API: `AnalyzeResumableGprLiveness(function_address, words)`, que retorna `live_in` e `live_out` de cada instrução em bitsets de 32 GPRs.
+- Semântica explicitamente suportada:
+  - `addi`: lê RA quando RA != 0 e define RT; r0 é tratado como constante zero.
+  - `bdnz` relativo, BO=16/BI=0, sem link: cria arestas para o destino e para o fall-through. CTR não faz parte do resultado GPR.
+  - `b` relativo, sem link: cria somente a aresta para o destino.
+  - `blr`: termina o fluxo.
+- A análise usa iteração de ponto fixo sobre o CFG ao nível de instrução, calculando a união dos `live_in` dos sucessores e `live_in = use ∪ (live_out - def)`. Isso permite cobrir loops e caminhos de branch sem depender da API semântica incompleta de produção.
+- OpCodes não modelados, branches absolutos/com link, bdnz com parâmetros diferentes, destinos desalinhados/fora da função e fall-through ausente são rejeitados.
+- Adicionados testes para:
+  - definição/uso em sequência linear;
+  - união dos sucessores de branch condicional, incluindo caminho que sobrescreve o registrador;
+  - convergência de liveness em loop;
+  - rejeição de instrução não modelada e destino fora da função.
+- Commits:
+  - implementação: `8e7df22ab21e619f6ed664f0ad53bdefc3a02195`;
+  - testes: `1574746d13361d18c0aa8bb7889aa79d58d87e65`;
+  - filtro CI: `108345289dceb457a2660a023f4faf0dcd2860d5`.
+- O workflow Guest Frame foi atualizado para disparar quando o novo cabeçalho mudar. CI de compilação/testes e lint ainda precisam terminar; não declarar esta etapa validada antes de inspecionar os resultados.
+- Limites: análise somente GPR e somente esse subconjunto; não materializa registradores, não emite safepoints, não pausa C++ AOT e não salva memória guest/threads. Não está conectada ao runtime do jogo.
+- Próxima etapa após CI verde: validar os conjuntos calculados; depois ampliar a entrada para instruções PPC decodificadas e blocos reais de `FunctionNode`, mantendo rejeição conservadora. Só depois projetar a emissão opt-in de checkpoint.
+- Decisão de integração RECVX: o acesso futuro ao Save State durante a partida será por overlay sobre o jogo. A implementação do overlay fica bloqueada até existir uma operação de pause/checkpoint/resume segura no runtime; não alterar o APK funcional nesta fase.
