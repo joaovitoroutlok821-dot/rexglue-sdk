@@ -71,4 +71,4 @@ jobs:
 
       - name: Run guest frame tests
         run: |
-          ctest --test-dir out/build/guest-frame-tests -R 'guest_call_stack|resumable_frame|aot_runtime_addi' --output-on-failure
+          ctest --test-dir out/build/guest-frame-tests -R 'guest_call_stack|resumable_frame|aot_runtime_localized_gpr' --output-on-failure
