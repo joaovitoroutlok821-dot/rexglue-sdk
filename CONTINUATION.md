@@ -891,3 +891,11 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Guest Frame e Lint para o commit final estão aguardando/rodando; ainda não há resultado confirmado.
 - Limite: este é um primitivo de cópia seletiva sobre arrays explícitos, não um checkpoint AOT executável. Próximo passo, depois de CI verde: ligar os locais C++ identificados pelo `RecompilerLocalVariables` a um buffer explícito por instrução e provar em fixture gerada que um GPR local pode ser capturado, serializado, restaurado e consumido após uma retomada controlada. A emissão precisa permanecer opt-in.
 - Nenhuma alteração no runtime de produção ou no APK RECVX.
+
+
+#### Ajuste de formatação dos testes de transferência GPR — 2026-11-13
+
+- O Lint da primeira versão do teste apontou uma única quebra de linha em `TEST_CASE` em `tests/unit/ppc/resumable_gpr_state_test.cpp`.
+- A linha foi ajustada no commit `e3636f2ab696b514d95723d0202dda19347f7fbe`.
+- Guest Frame #58 e Lint #185 foram disparados para esse commit e ainda estavam na fila quando este registro foi escrito.
+- O teste de Guest Frame #56 e o Lint #184 correspondem ao commit anterior e não devem ser usados para validar a correção final.
