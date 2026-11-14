@@ -872,3 +872,22 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - A assinatura foi ajustada ao formato esperado pelo clang-format no commit `76a53a0b80775da7591ec0c4c3a8bf6dc8c79db3`.
 - Novas execuções no commit corrigido: Guest Frame #55 e Lint #182; ambas ainda em execução no momento deste registro.
 - As execuções anteriores com falha de formatação não validam o plano. A validação depende do resultado dos workflows no commit corrigido.
+
+
+### Transferência explícita de GPRs vivos para o frame — 2026-11-13
+
+- O emissor AOT foi revisitado em `FunctionNode::emitCpp()`: cada instrução é processada com um `BuilderContext`, mas o corpo é acumulado antes das declarações finais de variáveis locais. Portanto, um safepoint emitido precisa ser desenhado para referenciar os mesmos locais que o builder selecionou, e não apenas copiar `PPCContext`.
+- Criado `include/rex/ppc/resumable_gpr_state.h` com duas rotinas experimentais:
+  - `CaptureLiveGprs(frame, values, live_mask)`: copia para o frame apenas os GPRs marcados como vivos;
+  - `RestoreLiveGprs(frame, values, live_mask)`: restaura somente os GPRs marcados, deixando os demais valores do destino intocados.
+- As rotinas recebem uma matriz explícita de valores GPR e uma máscara. Não descobrem variáveis locais, não fazem leitura automática de `PPCContext`, não são chamadas pelo codegen e não criam ponto de pausa/retomada.
+- Criado `tests/unit/ppc/resumable_gpr_state_test.cpp` para verificar captura/restauração seletiva e não alteração de registradores não vivos.
+- Teste registrado em `tests/unit/CMakeLists.txt`; workflow Guest Frame ampliado para monitorar o cabeçalho e o teste.
+- Commits:
+  - helpers: `f6b835f17d14401f670aa5afa15c772209dbb93e`;
+  - teste: `b8aa74c281ecd28aea4b5a5258bc9c811baaccc0`;
+  - CMake: `21c49760bbe737d9551968dac55ee5c8f0153019`;
+  - workflow: `359d67d7b7a56703c3e01fecf1913201afbcb747`.
+- Guest Frame e Lint para o commit final estão aguardando/rodando; ainda não há resultado confirmado.
+- Limite: este é um primitivo de cópia seletiva sobre arrays explícitos, não um checkpoint AOT executável. Próximo passo, depois de CI verde: ligar os locais C++ identificados pelo `RecompilerLocalVariables` a um buffer explícito por instrução e provar em fixture gerada que um GPR local pode ser capturado, serializado, restaurado e consumido após uma retomada controlada. A emissão precisa permanecer opt-in.
+- Nenhuma alteração no runtime de produção ou no APK RECVX.
