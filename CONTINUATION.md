@@ -864,3 +864,11 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - CI do commit final `c18021b2...` está em execução/na fila neste registro: Guest Frame #54 e Lint #181. Resultados ainda não confirmados.
 - Limites atuais: subconjunto estreito de GPR e instruções modeladas; não analisa FPR/VMX, CR, XER ou todos os efeitos de instruções. O plano não prova que todos os estados de máquina necessários estejam cobertos, não materializa variáveis C++ locais, não cria labels de retomada e não pausa/retoma execução. Save State do jogo continua não implementado.
 - Próxima etapa após CI verde: especificar e testar um pequeno mecanismo de materialização/restauração de GPR em fixture AOT gerada, com retomada por PC explícito. Manter opt-in e rejeitar qualquer caso fora do subconjunto comprovado. Não tocar no runtime normal nem no APK RECVX.
+
+
+#### Correção de formatação do plano de checkpoint — 2026-11-13
+
+- O primeiro Lint & Format Check da nova etapa falhou somente por quebra de linha na assinatura de `BuildResumableGprCheckpointPlan` em `include/rex/codegen/resumable_checkpoint_plan.h`.
+- A assinatura foi ajustada ao formato esperado pelo clang-format no commit `76a53a0b80775da7591ec0c4c3a8bf6dc8c79db3`.
+- Novas execuções no commit corrigido: Guest Frame #55 e Lint #182; ambas ainda em execução no momento deste registro.
+- As execuções anteriores com falha de formatação não validam o plano. A validação depende do resultado dos workflows no commit corrigido.
