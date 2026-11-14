@@ -8,6 +8,7 @@ on:
     paths:
       - 'include/rex/ppc/guest_call_stack.h'
       - 'include/rex/ppc/resumable_frame.h'
+      - 'include/rex/ppc/resumable_gpr_state.h'
       - 'include/rex/ppc/resumable_program.h'
       - 'include/rex/ppc/resumable_liveness.h'
       - 'include/rex/codegen/resumable_function.h'
@@ -17,6 +18,7 @@ on:
       - 'include/rex/chrono/chrono.h'
       - 'tests/unit/ppc/guest_call_stack_test.cpp'
       - 'tests/unit/ppc/resumable_frame_test.cpp'
+      - 'tests/unit/ppc/resumable_gpr_state_test.cpp'
       - 'tests/unit/codegen/resumable_function_liveness_test.cpp'
       - 'tests/unit/codegen/resumable_checkpoint_plan_test.cpp'
       - 'tests/unit/catch2_compat.h'
