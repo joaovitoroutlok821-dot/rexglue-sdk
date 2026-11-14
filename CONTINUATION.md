@@ -899,3 +899,15 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - A linha foi ajustada no commit `e3636f2ab696b514d95723d0202dda19347f7fbe`.
 - Guest Frame #58 e Lint #185 foram disparados para esse commit e ainda estavam na fila quando este registro foi escrito.
 - O teste de Guest Frame #56 e o Lint #184 correspondem ao commit anterior e não devem ser usados para validar a correção final.
+
+
+### Validação dos helpers de transferência GPR e correção final de lint — 2026-11-14
+
+- Guest Frame Prototype Unit Tests #59 passou no commit `e3636f2ab696b514d95723d0202dda19347f7fbe`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43543718447
+- Lint & Format Check #194 também passou nesse commit: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43543718412
+- A documentação foi atualizada no commit `3247b339d7d4f117544948334c20c103956dc6de`; o Lint #195 passou: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43543740476
+- Na ampliação do workflow, Guest Frame #60 passou no commit `359d67d7b7a56703c3e01fecf1913201afbcb747`: https://github.com/joaovitoroutlok821-dot/rexglue-sdk/actions/runs/43544681947
+- O Lint #196 desse commit falhou exclusivamente no clang-format de `tests/unit/ppc/resumable_gpr_state_test.cpp`, na quebra da linha do `TEST_CASE`. Nenhum erro de compilação/teste foi apontado nesse job.
+- Correção de formatação enviada em novo commit: `2aed3d671c7b895b5166dca3f5af7d3eecd5b154`. A validação de lint para esse commit ainda precisa terminar.
+- Limite técnico permanece: os helpers copiam GPRs entre um array explícito e o frame, mas ainda não estão ligados às variáveis locais do C++ AOT nem criam pausa, serialização e retomada executáveis. Save State real ainda não está implementado.
+- Próximo passo após CI verde: instrumentar uma fixture AOT opt-in para materializar o GPR local no ponto de checkpoint, serializar o frame, restaurar o valor e consumi-lo após a retomada controlada. Manter o runtime normal e o APK funcional do RECVX intocados.
