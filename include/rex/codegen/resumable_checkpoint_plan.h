@@ -24,8 +24,8 @@ struct ResumableGprCheckpointPlan {
 /// GPR liveness adapter. Every entry is a pre-instruction boundary; live_gprs
 /// is live_in for that instruction. Other machine state and runtime safety
 /// are not validated here.
-inline std::optional<std::vector<ResumableGprCheckpointPlan>>
-BuildResumableGprCheckpointPlan(const FunctionNode& function) {
+inline std::optional<std::vector<ResumableGprCheckpointPlan>> BuildResumableGprCheckpointPlan(
+    const FunctionNode& function) {
   auto liveness = AnalyzeResumableFunctionGprLiveness(function);
   if (!liveness)
     return std::nullopt;
