@@ -943,3 +943,14 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - A fixture não deve afirmar que a análise cobre convenções ABI ou o valor de retorno implícito de `blr`; isso permanece fora do modelo.
 - Validação CI do commit `bc3002b` ainda pendente. Não considerar aprovado até conferir os resultados do workflow.
 - Próxima tarefa segue sendo inspecionar o emissor AOT e estabelecer um mapeamento verificável entre GPRs PPC e variáveis locais geradas. A análise atual não fornece esse mapeamento.
+
+### Investigação do caminho AOT e limite atual do mapeamento GPR→local — 2026-11-14
+
+- Inspecionados na branch `save-state-frame-prototype`: `include/rex/codegen/function_node.h`, `include/rex/codegen/function_types.h`, `include/rex/codegen/codegen_context.h`, `include/rex/codegen/resumable_function.h`, `include/rex/codegen/resumable_checkpoint_plan.h` e o template `resources/templates/test/ppc_test_functions_cpp.inja`.
+- `FunctionNode` expõe instruções PPC decodificadas, blocos, análise e `emitCpp(const EmitContext&)`. O `EmitContext` inspecionado contém referências a BinaryView, RecompilerConfig, FunctionGraph, entry point, resolver e nomes de funções referenciadas; não expõe um mapa de variáveis locais por GPR.
+- `CompileResumableFunction` compila um subconjunto PPC para `ResumableProgram`; é uma via experimental separada e não demonstra acesso às variáveis C++ locais das funções AOT normais.
+- O template `ppc_test_functions_cpp.inja` recebe `functions_code` já gerado e inclui os cabeçalhos de runtime; não fornece por si só os identificadores das variáveis locais.
+- Tentativas de localizar diretamente o emissor/BuilderContext por nomes presumidos e buscas de código não localizaram o arquivo responsável. Portanto, ainda não há evidência suficiente para escrever um adaptador correto GPR→local; nenhum mapeamento deve ser presumido a partir da máscara de liveness.
+- CI: a consulta de status combinado ao commit `bc3002bcdb0c0bd8ccf8b47d22c104d4f3979883` retornou lista vazia de statuses; isso não equivale a aprovação. O workflow Guest Frame observa o teste alterado, mas a execução precisa ser verificada na interface Actions.
+- Próxima ação segura: localizar a implementação real de `FunctionNode::emitCpp` e o código que cria os nomes/expressões dos registradores PPC localizados. Seguir os includes e fontes listados no CMake, e então adicionar instrumentação de teste opt-in que exponha a associação (PPC GPR index, nome/tipo da variável gerada, escopo e PC válido). Não gerar captura de estado até essa associação ser verificável.
+- Nenhuma alteração foi feita no runtime normal ou no APK funcional do RECVX.
