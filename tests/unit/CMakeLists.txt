@@ -21,6 +21,7 @@ add_executable(unit_tests
     input/input_assignment_test.cpp
     codegen/codegen_writer_test.cpp
     codegen/resumable_function_liveness_test.cpp
+    codegen/resumable_checkpoint_plan_test.cpp
     codegen/output_partition_test.cpp
     codegen/output_stamp_test.cpp
 )
