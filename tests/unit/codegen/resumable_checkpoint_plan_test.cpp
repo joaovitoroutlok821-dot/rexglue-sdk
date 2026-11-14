@@ -16,9 +16,10 @@
 TEST_CASE("GPR checkpoint plan records pre-instruction live values",
           "[codegen][ppc][resumable_checkpoint]") {
   constexpr uint32_t base = 0x8200A000;
-  constexpr std::array<uint32_t, 3> words = {
+  constexpr std::array<uint32_t, 4> words = {
       0x38600005,  // addi r3,r0,5
       0x38830001,  // addi r4,r3,1
+      0x38640000,  // addi r3,r4,0 (consume r4 as the return value)
       0x4E800020,  // blr
   };
 
@@ -49,15 +50,18 @@ TEST_CASE("GPR checkpoint plan records pre-instruction live values",
   CHECK_FALSE((*plan)[1].live_gprs.test(4));
   CHECK((*plan)[2].resume_pc == base + 8);
   CHECK((*plan)[2].live_gprs.test(4));
+  CHECK_FALSE((*plan)[2].live_gprs.test(3));
+  CHECK((*plan)[3].resume_pc == base + 12);
 }
 
 
 TEST_CASE("GPR checkpoint plan drives selective frame transfer",
           "[codegen][ppc][resumable_checkpoint]") {
   constexpr uint32_t base = 0x8200A100;
-  constexpr std::array<uint32_t, 3> words = {
+  constexpr std::array<uint32_t, 4> words = {
       0x38600005,  // addi r3,r0,5
       0x38830001,  // addi r4,r3,1
+      0x38640000,  // addi r3,r4,0 (consume r4 as the return value)
       0x4E800020,  // blr
   };
 
@@ -106,13 +110,13 @@ TEST_CASE("GPR checkpoint plan drives selective frame transfer",
   CHECK(restored_values[3] == 0x33);
   CHECK(restored_values[4] == 0xDEADBEEF);
 
-  // At the return boundary, the analysis says r4 is live. A fresh frame
-  // captures that value instead of reusing the previous boundary's mask.
+  // Immediately before addi r3,r4,0, only r4 is live. The checkpoint
+  // captures that value at the actual use, not at the following blr.
   source_values[4] = 0x55;
-  rex::ppc::ResumableFrame return_frame;
-  return_frame.function_address = base;
-  return_frame.resume_pc = (*plan)[2].resume_pc;
-  rex::ppc::CaptureLiveGprs(return_frame, source_values, (*plan)[2].live_gprs);
-  CHECK(return_frame.gpr[3] == 0);
-  CHECK(return_frame.gpr[4] == 0x55);
+  rex::ppc::ResumableFrame consume_frame;
+  consume_frame.function_address = base;
+  consume_frame.resume_pc = (*plan)[2].resume_pc;
+  rex::ppc::CaptureLiveGprs(consume_frame, source_values, (*plan)[2].live_gprs);
+  CHECK(consume_frame.gpr[3] == 0);
+  CHECK(consume_frame.gpr[4] == 0x55);
 }
