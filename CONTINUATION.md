@@ -911,3 +911,15 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Correção de formatação enviada em novo commit: `2aed3d671c7b895b5166dca3f5af7d3eecd5b154`. A validação de lint para esse commit ainda precisa terminar.
 - Limite técnico permanece: os helpers copiam GPRs entre um array explícito e o frame, mas ainda não estão ligados às variáveis locais do C++ AOT nem criam pausa, serialização e retomada executáveis. Save State real ainda não está implementado.
 - Próximo passo após CI verde: instrumentar uma fixture AOT opt-in para materializar o GPR local no ponto de checkpoint, serializar o frame, restaurar o valor e consumi-lo após a retomada controlada. Manter o runtime normal e o APK funcional do RECVX intocados.
+
+### Validação da fixture AOT com transferência real de GPR local — 2026-11-14
+
+- Guest Frame Prototype Unit Tests #64 passou no commit `498b9cd4894feca3e7d41325a9c280eb3837b770` (resultado confirmado na página Actions).
+- Lint & Format Check #202 também passou no mesmo commit.
+- A fixture dedicada `seq_aot_runtime` ativa `nonArgumentRegistersAsLocalVariables` somente para o teste `test_aot_runtime_localized_gpr`; as demais suites continuam com a configuração padrão.
+- Foram adicionados dois hooks experimentais para `r11`: um ponto de entrada que restaura o registrador e direciona a execução para o PC de retomada, e um checkpoint antes da instrução seguinte que captura o valor local e interrompe a chamada.
+- O teste confirma captura de `r11` local, serialização e desserialização de `ResumableFrame`, restauração em uma nova chamada e consumo do valor pela instrução seguinte, sem repetir a instrução anterior.
+- O workflow agora também observa `resources/templates/test/ppc_test_cases_cpp.inja`, para que mudanças no template gerado disparem a suite AOT.
+- Limite: a fixture cobre uma única fronteira e um único GPR (`r11`), com hooks e máscara configurados manualmente. Não demonstra descoberta automática de todos os GPRs vivos, múltiplas fronteiras, FPR/VMX/CR/XER, memória guest, pilhas, threads ou retomada geral do jogo. Ainda não é um Save State completo.
+- Próxima etapa: generalizar a fixture de forma conservadora para consumir o plano de checkpoint/liveness já calculado para a função, em vez de codificar manualmente o PC e a máscara de `r11`. Começar por GPRs e por uma função de bloco único; rejeitar qualquer instrução/fluxo fora do subconjunto analisado. Adicionar testes negativos para estados não suportados antes de considerar integração no runtime.
+- Manter a implementação isolada em `save-state-frame-prototype`. Não alterar o runtime normal nem o APK funcional do RECVX.
