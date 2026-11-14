@@ -934,3 +934,12 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - O workflow Guest Frame já monitora `tests/unit/codegen/resumable_checkpoint_plan_test.cpp`; o commit deve disparar a validação automatizada. A aprovação de CI ainda precisa ser confirmada.
 - Próximo passo após CI verde: investigar a representação de GPRs locais usada pelo `BuilderContext`/emissor AOT e criar um adaptador opt-in que gere o array de valores a partir dos locais realmente selecionados pelo codegen. Se não for possível provar a correspondência local↔GPR em cada fronteira, rejeitar a fixture em vez de assumir equivalência.
 - Manter o escopo no teste AOT e no protótipo. Não alterar runtime de produção nem APK funcional do RECVX.
+
+### Correção da fronteira de liveness no teste de transferência — 2026-11-14
+
+- Commit `bc3002bcdb0c0bd8ccf8b47d22c104d4f3979883`: corrigido `tests/unit/codegen/resumable_checkpoint_plan_test.cpp`.
+- Revisão do algoritmo `AnalyzeResumableGprLiveness` mostrou que `blr` não consome GPRs no modelo atual. Portanto, a expectativa anterior de que `r4` estivesse vivo na fronteira imediatamente anterior a `blr` era incorreta.
+- A fixture agora inclui `addi r3,r4,0` antes de `blr`. O checkpoint na fronteira dessa instrução exige `r4` e não `r3`; a transferência seletiva é verificada nesse ponto real de consumo.
+- A fixture não deve afirmar que a análise cobre convenções ABI ou o valor de retorno implícito de `blr`; isso permanece fora do modelo.
+- Validação CI do commit `bc3002b` ainda pendente. Não considerar aprovado até conferir os resultados do workflow.
+- Próxima tarefa segue sendo inspecionar o emissor AOT e estabelecer um mapeamento verificável entre GPRs PPC e variáveis locais geradas. A análise atual não fornece esse mapeamento.
