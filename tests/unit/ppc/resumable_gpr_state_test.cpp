@@ -9,8 +9,7 @@
 
 #include <rex/ppc/resumable_gpr_state.h>
 
-TEST_CASE("Live GPR capture and restore preserve only selected registers",
-          "[ppc][resumable_gpr]") {
+TEST_CASE("Live GPR transfer preserves selected registers", "[ppc][resumable_gpr]") {
   rex::ppc::ResumableFrame frame;
   frame.function_address = 0x8200B000;
   frame.resume_pc = 0x8200B004;
