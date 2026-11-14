@@ -923,3 +923,14 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Limite: a fixture cobre uma única fronteira e um único GPR (`r11`), com hooks e máscara configurados manualmente. Não demonstra descoberta automática de todos os GPRs vivos, múltiplas fronteiras, FPR/VMX/CR/XER, memória guest, pilhas, threads ou retomada geral do jogo. Ainda não é um Save State completo.
 - Próxima etapa: generalizar a fixture de forma conservadora para consumir o plano de checkpoint/liveness já calculado para a função, em vez de codificar manualmente o PC e a máscara de `r11`. Começar por GPRs e por uma função de bloco único; rejeitar qualquer instrução/fluxo fora do subconjunto analisado. Adicionar testes negativos para estados não suportados antes de considerar integração no runtime.
 - Manter a implementação isolada em `save-state-frame-prototype`. Não alterar o runtime normal nem o APK funcional do RECVX.
+
+### Consumo do plano de liveness pela transferência seletiva para ResumableFrame — 2026-11-14
+
+- Commit `c56c71afa073d01da2450b506986deaf5e0e7ba4`: ampliado `tests/unit/codegen/resumable_checkpoint_plan_test.cpp`.
+- Novo teste combina `BuildResumableGprCheckpointPlan` com `CaptureLiveGprs`, `RestoreLiveGprs` e serialização/desserialização do `ResumableFrame`.
+- A máscara de cada fronteira vem do resultado da análise, não de uma lista manual de registradores: na fronteira antes de `addi r4,r3,1`, captura somente r3; na fronteira antes do retorno, captura r4.
+- O teste também verifica que um GPR não vivo no ponto restaurado permanece intocado no destino.
+- Este é um passo de integração entre análise e formato de estado, mas ainda usa arrays explícitos de valores. Não lê automaticamente as variáveis locais C++ geradas pelo AOT, não injeta hooks, não cria dispatch por PC e não suspende uma execução real.
+- O workflow Guest Frame já monitora `tests/unit/codegen/resumable_checkpoint_plan_test.cpp`; o commit deve disparar a validação automatizada. A aprovação de CI ainda precisa ser confirmada.
+- Próximo passo após CI verde: investigar a representação de GPRs locais usada pelo `BuilderContext`/emissor AOT e criar um adaptador opt-in que gere o array de valores a partir dos locais realmente selecionados pelo codegen. Se não for possível provar a correspondência local↔GPR em cada fronteira, rejeitar a fixture em vez de assumir equivalência.
+- Manter o escopo no teste AOT e no protótipo. Não alterar runtime de produção nem APK funcional do RECVX.
