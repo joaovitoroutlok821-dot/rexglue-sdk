@@ -845,3 +845,22 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - No momento desta atualização, Guest Frame #52 e Lint #177 para o commit final estão na fila/em execução; os resultados ainda não foram confirmados. Não declarar o adaptador validado até os dois workflows concluírem.
 - Limite: esta é uma análise conservadora de liveness sobre instruções reais decodificadas de uma forma estreita de FunctionNode; ainda não é análise geral de CFG com blocos múltiplos, não cria safepoints, não materializa variáveis locais do C++ AOT e não salva/restaura execução do jogo.
 - Próximo passo após CI verde: investigar como associar a liveness aos pontos de emissão de cada instrução no C++ AOT, mantendo o escopo opt-in e criando uma fixture que valide valores GPR vivos em um checkpoint sintético. Não integrar ao APK RECVX ainda.
+
+
+### Planejamento experimental de fronteiras de checkpoint GPR — 2026-11-13
+
+- A auditoria do emissor real `FunctionNode::emitCpp()` confirmou o ponto de inserção conceitual: o segundo passe percorre cada instrução com `blockBase`, constrói `BuilderContext` e emite o código antes de avançar quatro bytes.
+- O emissor, porém, acumula o corpo em uma string e declara todas as variáveis locais depois de processar as instruções. Portanto, a existência de um ponto de emissão por instrução não resolve sozinha como salvar/restaurar o valor das variáveis C++ locais.
+- O código atual só emite labels para destinos de branch e alguns hooks. Retomar em um PC arbitrário exigirá um mecanismo explícito de entrada/dispatch para a continuação (por exemplo, labels estáveis por instrução e seleção inicial do PC), além de materialização dos valores vivos. Não basta definir o PC no frame.
+- Criado `include/rex/codegen/resumable_checkpoint_plan.h` com `BuildResumableGprCheckpointPlan(FunctionNode)`. Para cada fronteira anterior à instrução, registra `resume_pc = instruction.address` e o conjunto `live_gprs = live_in` calculado pela análise conservadora.
+- A semântica é intencionalmente pré-instrução: o frame retoma no endereço registrado sem repetir instruções anteriores; somente os GPRs necessários antes daquela instrução são listados. O plano é metadado de análise, não serializa valores nem gera código de checkpoint.
+- Criado `tests/unit/codegen/resumable_checkpoint_plan_test.cpp`, verificando que r3 é necessário antes da segunda instrução e r4 antes do retorno, mas não são indevidamente marcados antes de suas definições.
+- Arquivos registrados em `tests/unit/CMakeLists.txt` e no workflow Guest Frame.
+- Commits:
+  - plano: `72536240e2e2a1127c54dc51b6e5fde410435d8c`;
+  - teste: `0c0a71136ae8e03b5bf657e5afe2032263754b45`;
+  - CMake: `b344445113a87945ed1741af2c915fc9c02a5007`;
+  - workflow: `c18021b2b386a56de0e6684aeecd1e5822b71f08`.
+- CI do commit final `c18021b2...` está em execução/na fila neste registro: Guest Frame #54 e Lint #181. Resultados ainda não confirmados.
+- Limites atuais: subconjunto estreito de GPR e instruções modeladas; não analisa FPR/VMX, CR, XER ou todos os efeitos de instruções. O plano não prova que todos os estados de máquina necessários estejam cobertos, não materializa variáveis C++ locais, não cria labels de retomada e não pausa/retoma execução. Save State do jogo continua não implementado.
+- Próxima etapa após CI verde: especificar e testar um pequeno mecanismo de materialização/restauração de GPR em fixture AOT gerada, com retomada por PC explícito. Manter opt-in e rejeitar qualquer caso fora do subconjunto comprovado. Não tocar no runtime normal nem no APK RECVX.
