@@ -28,6 +28,7 @@ on:
       - 'cmake/ppc_test_pipeline.cmake'
       - 'src/rexglue/commands/test_recompiler.cpp'
       - 'resources/templates/test/ppc_test_functions_cpp.inja'
+      - 'resources/templates/test/ppc_test_cases_cpp.inja'
       - 'CMakeLists.txt'
       - 'CMakePresets.json'
       - '.github/workflows/guest-frame-prototype-tests.yml'
