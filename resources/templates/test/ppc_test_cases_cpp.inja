@@ -5,10 +5,47 @@
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
+#include <span>
+#include <array>
+#include <bitset>
 #include "ppc_config.h"
 #include <rex/ppc.h>
+#include <rex/ppc/resumable_gpr_state.h>
 #include <rex/system/xmemory.h>
 #include "ppc_test_decls.h"
+
+namespace {
+constexpr uint32_t kResumableGprFixtureAddress = 0x82010000;
+thread_local rex::ppc::ResumableFrame resumable_gpr_frame;
+thread_local bool resumable_gpr_capture_requested = false;
+thread_local bool resumable_gpr_resume_requested = false;
+}
+
+bool rex_resumable_gpr_resume_entry(PPCRegister& r11) {
+    if (!resumable_gpr_resume_requested)
+        return false;
+    std::array<uint64_t, 32> values{};
+    std::bitset<32> live_gprs;
+    live_gprs.set(11);
+    rex::ppc::RestoreLiveGprs(resumable_gpr_frame, values, live_gprs);
+    r11.u64 = values[11];
+    resumable_gpr_resume_requested = false;
+    return true;
+}
+
+bool rex_resumable_gpr_capture_checkpoint(PPCRegister& r11) {
+    if (!resumable_gpr_capture_requested)
+        return false;
+    resumable_gpr_frame.function_address = kResumableGprFixtureAddress;
+    resumable_gpr_frame.resume_pc = kResumableGprFixtureAddress + 4;
+    std::array<uint64_t, 32> values{};
+    std::bitset<32> live_gprs;
+    values[11] = r11.u64;
+    live_gprs.set(11);
+    rex::ppc::CaptureLiveGprs(resumable_gpr_frame, values, live_gprs);
+    resumable_gpr_capture_requested = false;
+    return true;
+}
 
 // Global memory instance - same class used by real runtime
 static rex::memory::Memory& get_memory() {
@@ -65,7 +102,26 @@ TEST_CASE("{{ test.name }}", "[ppc][{{ test.category }}][{{ test.stem }}]") {
 ## endfor
 ## endfor
 
+## if test.stem == "seq_aot_runtime"
+    resumable_gpr_frame = {};
+    resumable_gpr_capture_requested = true;
+    resumable_gpr_resume_requested = false;
     {{ test.symbol }}(ctx, memory);
+    REQUIRE(resumable_gpr_frame.function_address == kResumableGprFixtureAddress);
+    REQUIRE(resumable_gpr_frame.resume_pc == kResumableGprFixtureAddress + 4);
+    REQUIRE(resumable_gpr_frame.gpr[11] == 0x30);
+    auto serialized_frame = resumable_gpr_frame.Serialize();
+    REQUIRE(serialized_frame.has_value());
+    auto restored_frame = rex::ppc::ResumableFrame::Deserialize(
+        std::span<const uint8_t>(*serialized_frame));
+    REQUIRE(restored_frame.has_value());
+    resumable_gpr_frame = *restored_frame;
+    resumable_gpr_resume_requested = true;
+    {{ test.symbol }}(ctx, memory);
+    REQUIRE(ctx.r3.u64 == 0x30);
+## else
+    {{ test.symbol }}(ctx, memory);
+## endif
 
 ## for reg in test.outputs.registers
 ## if reg.type == "cr"
