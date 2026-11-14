@@ -350,6 +350,33 @@ bool RecompileTests(std::string_view binDir, std::string_view asmDir, std::strin
     // Exercise a localized GPR in the dedicated AOT runtime fixture only.
     // Keep the rest of the instruction suite on its default codegen settings.
     config.nonArgumentRegistersAsLocalVariables = (stem == "seq_aot_runtime");
+    if (stem == "seq_aot_runtime") {
+      bool configured_resumable_hooks = false;
+      for (const auto& [address, symbol] : symbols) {
+        if (symbol != "test_aot_runtime_localized_gpr")
+          continue;
+
+        const uint32_t function_address = static_cast<uint32_t>(address);
+        codegen::MidAsmHook resume_hook;
+        resume_hook.name = "rex_resumable_gpr_resume_entry";
+        resume_hook.registers = {"r11"};
+        resume_hook.jumpAddressOnTrue = function_address + 4;
+        config.midAsmHooks.emplace(function_address, std::move(resume_hook));
+
+        codegen::MidAsmHook checkpoint_hook;
+        checkpoint_hook.name = "rex_resumable_gpr_capture_checkpoint";
+        checkpoint_hook.registers = {"r11"};
+        checkpoint_hook.returnOnTrue = true;
+        config.midAsmHooks.emplace(function_address + 4, std::move(checkpoint_hook));
+
+        configured_resumable_hooks = true;
+        break;
+      }
+      if (!configured_resumable_hooks) {
+        REXLOG_ERROR("Unable to locate localized GPR resumable AOT fixture symbol");
+        return false;
+      }
+    }
     auto ctx =
         codegen::CodegenContext::Create(codegen::BinaryView::fromModule(module), std::move(config));
 
