@@ -1048,3 +1048,16 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - CI e clang-format para o commit de teste ainda precisam ser conferidos. Não declarar aprovação antes dos workflows terminarem.
 - Limite: o novo plano valida apenas a cobertura GPR→local segundo as mesmas regras do accessor do emissor. Ainda não injeta hooks automaticamente, não serializa variáveis locais do AOT, não cria dispatch por PC e não demonstra suspensão/retomada segura. FPR, VMX, CR, XER, LR, CTR, memória guest, pilhas e threads permanecem fora deste teste.
 - Runtime normal e APK funcional do RECVX permanecem intocados.
+
+
+### Revisão da etapa de GPR local e correção da cobertura do workflow — 2026-11-14
+
+- Revisados na branch ativa `save-state-frame-prototype`: `include/rex/codegen/resumable_checkpoint_plan.h`, `tests/unit/codegen/resumable_checkpoint_plan_test.cpp`, `include/rex/codegen/config.h`, `tests/unit/CMakeLists.txt` e `.github/workflows/guest-frame-prototype-tests.yml`.
+- Os nomes dos campos usados pelo plano existem em `RecompilerConfig`: `nonArgumentRegistersAsLocalVariables` e `nonVolatileRegistersAsLocalVariables`. O novo campo `local_gprs` é inicializado no único aggregate initializer encontrado no cabeçalho revisado. O teste está incluído em `tests/unit/CMakeLists.txt`.
+- **Problema encontrado no workflow:** o alvo `unit_tests` era compilado, mas o comando CTest filtrava apenas `guest_call_stack|resumable_frame|aot_runtime_localized_gpr`. Assim, `resumable_checkpoint_plan_test.cpp` poderia compilar sem que seus casos fossem executados. A ausência de status CI nos commits `e6f5133`, `6c88e20` e `159f0f7` também não permitia afirmar aprovação.
+- Corrigido o filtro CTest para executar também `resumable_gpr_state`, `resumable_function_liveness` e `resumable_checkpoint_plan`, além dos testes já cobertos.
+- Commit da correção do workflow: `d362183dd73f3b8c2159fac76b84bb4c29ba5e99`.
+- **Validação deste commit:** ainda não consultada/concluída neste registro. Verificar Guest Frame Prototype Unit Tests e Lint & Format Check associados ao commit antes de avançar.
+- Próximo passo: conferir os resultados dos workflows do commit acima; se o build e CTest passarem, avançar para fixture de emissão AOT que derive automaticamente os locais a capturar a partir do plano, com testes positivos e negativos. Não tratar o planejamento como captura/restauração executável.
+- Repositório: `joaovitoroutlok821-dot/rexglue-sdk`; branch: `save-state-frame-prototype`.
+- Nenhuma alteração no runtime normal ou no APK funcional do RECVX.
