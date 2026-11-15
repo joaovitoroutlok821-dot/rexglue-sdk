@@ -1,3 +1,63 @@
+# CONTEXTO PRINCIPAL PARA CONTINUAR EM OUTRO CHAT
+
+> **Leia esta seção antes de qualquer outra.** Ela identifica o projeto ativo, o repositório correto, a branch de trabalho, o objetivo e o ponto exato de retomada. As seções históricas abaixo devem ser preservadas como registro; quando houver conflito, esta seção e a atualização cronológica mais recente da branch ativa prevalecem.
+
+- **Projeto ativo:** ReXGlue SDK — protótipo experimental de Save State para jogos recompilados, com foco na integração futura ao Resident Evil Code Veronica X HD (RECVX) no Android ARM64.
+- **Repositório:** `joaovitoroutlok821-dot/rexglue-sdk`
+- **URL do repositório:** https://github.com/joaovitoroutlok821-dot/rexglue-sdk
+- **Branch ativa e obrigatória para este trabalho:** `save-state-frame-prototype`
+- **URL direta desta branch:** https://github.com/joaovitoroutlok821-dot/rexglue-sdk/tree/save-state-frame-prototype
+- **Arquivo de continuidade nesta branch:** https://github.com/joaovitoroutlok821-dot/rexglue-sdk/blob/save-state-frame-prototype/CONTINUATION.md
+- **Idioma de trabalho:** português (Brasil).
+
+## Instruções obrigatórias para o próximo chat
+
+1. Continue exclusivamente no repositório e na branch acima para o protótipo Save State. Antes de editar, confirme que está lendo/escrevendo em `save-state-frame-prototype`; não use a branch `android-arm64-fiber-experiment` nem a branch principal por engano.
+2. Leia este arquivo inteiro, especialmente a seção cronológica mais recente, antes de propor ou executar mudanças. Não recomece o projeto do zero e não peça ao usuário para repetir informações já registradas.
+3. O usuário trabalha somente pelo celular Android (Motorola Edge 30 Pro, Android 13) e não tem computador. Sempre que possível, faça as alterações diretamente no GitHub usando a integração disponível; não dependa de edição manual no computador, terminal de PC ou comandos que o usuário não possa executar.
+4. O usuário usa “Ok” como autorização para continuar a etapa de trabalho em andamento. Prossiga com a próxima ação técnica segura, sem responder apenas com um plano genérico.
+5. Após cada atualização deste arquivo, informe explicitamente **repositório, branch e link direto do CONTINUATION.md** na resposta ao usuário.
+6. Registre aqui cada alteração real: objetivo, arquivos alterados, comportamento, commit SHA, resultado de CI com link e estado de validação. Diferencie sempre “passou”, “falhou”, “em execução” e “não verificado”. Status vazio/ausente não significa aprovação.
+7. Preserve o histórico abaixo; acrescente novas entradas cronológicas em vez de apagar o que já foi documentado.
+8. Não altere o runtime normal nem o APK funcional do RECVX durante este protótipo, salvo autorização explícita do usuário e evidência técnica suficiente. Mantenha as experiências isoladas nesta branch.
+9. Não declare que existe Save State funcional no jogo até que a captura, serialização, restauração e retomada real tenham sido demonstradas e validadas de ponta a ponta.
+
+## Objetivo técnico
+
+Desenvolver gradualmente um mecanismo seguro de checkpoint/resume para funções recompiladas AOT, começando por um subconjunto estrito de GPRs PPC. A meta futura é permitir salvar e restaurar o estado de execução de RECVX no Android, mas o trabalho atual ainda é uma prova de conceito de codegen/testes, não uma funcionalidade pronta para o jogo.
+
+## Estado técnico confirmado no ponto de transferência — 2026-11-14
+
+- Existe infraestrutura experimental de `ResumableFrame`, helpers de captura/restauração seletiva de GPR, análise de liveness e planejamento de checkpoints.
+- A fixture AOT anterior demonstrou manualmente uma fronteira e um GPR (r11), incluindo serialização/desserialização e retomada controlada em teste. Ela não é Save State geral.
+- O emissor AOT foi inspecionado: `FunctionNode::emitCpp` está em `src/codegen/function_graph.cpp`; `BuilderContext::r(index)` em `src/codegen/builders/context.cpp` retorna `rN` quando o registrador é localizado e `ctx.rN` caso contrário. As regras de localização estão descritas na atualização cronológica abaixo.
+- Foi adicionado `BuildResumableLocalGprCheckpointPlan(function, config)`, que combina liveness com as regras reais de localização e rejeita o plano se algum GPR vivo não for um local C++ capturável.
+- Teste novo cobre uma função sintética que usa r11: aceita o plano quando `nonArgumentRegistersAsLocalVariables` está ativo e rejeita quando está desativado.
+- Commits mais recentes de código/teste conhecidos:
+  - `e6f51337643111647fafb0048c99edbece1407e3` — plano de cobertura GPR local.
+  - `6c88e201cf38102502aeb2e54fd131f6e20b2f6e` — teste do plano local.
+  - `159f0f7aad7af6f0c931525ce0903549e9d413ef` — atualização anterior da documentação.
+- **CI do commit de teste ainda não foi confirmado.** Não afirmar que passou até consultar a execução correspondente e verificar o resultado final de build/teste e lint.
+
+## Próxima ação exata
+
+1. Revisar os arquivos atuais `include/rex/codegen/resumable_checkpoint_plan.h`, `tests/unit/codegen/resumable_checkpoint_plan_test.cpp` e `include/rex/codegen/config.h` na branch ativa.
+2. Procurar todos os usos/initializers de `ResumableGprCheckpointPlan` para detectar incompatibilidades introduzidas pelo novo campo `local_gprs`.
+3. Verificar construtores/APIs da fixture e confirmar que o teste novo compila; conferir os filtros `paths` e os workflows do GitHub Actions.
+4. Consultar os runs efetivamente disparados para os commits `e6f5133` e `6c88e20`. Se não houver run ou o status estiver ausente, registrar como não verificado — nunca como sucesso.
+5. Corrigir somente problemas demonstrados por código/logs. Depois da validação, avançar para instrumentação opt-in que gere a captura dos locais GPR a partir do plano, sem assumir mapeamentos.
+6. Antes de ampliar o escopo, provar em fixture AOT gerada: captura automática de cada GPR vivo permitido, serialização, restauração e retomada no PC correto. Rejeitar fluxos/instruções/estados não suportados.
+7. Ainda estão fora do escopo comprovado: FPR, VMX, CR, XER, LR, CTR, memória guest, pilhas, múltiplas threads e suspensão/retomada geral do jogo.
+
+## Contexto do usuário e do projeto consumidor
+
+- O destino futuro é o RECVX Android ARM64, executado no Motorola Edge 30 Pro.
+- O usuário já possui um APK funcional do RECVX, embora com limitações de desempenho/gráficos. Esse APK deve ser preservado durante o protótipo.
+- O objetivo atual desta conversa é Save State no SDK, não reconstruir o jogo nem recomeçar a launcher.
+- O usuário espera continuidade prática no GitHub e que este documento seja a fonte de transferência entre chats.
+
+---
+
 # CONTINUATION.md — ReXGlue SDK Android ARM64
 
 Última atualização: 2026-11-11
