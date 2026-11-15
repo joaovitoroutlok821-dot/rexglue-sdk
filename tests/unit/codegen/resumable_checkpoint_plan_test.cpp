@@ -120,3 +120,43 @@ TEST_CASE("GPR checkpoint plan drives selective frame transfer",
   CHECK(consume_frame.gpr[3] == 0);
   CHECK(consume_frame.gpr[4] == 0x55);
 }
+
+
+TEST_CASE("Local GPR checkpoint plan accepts only live registers emitted as locals",
+          "[codegen][ppc][resumable_checkpoint]") {
+  constexpr uint32_t base = 0x8200A200;
+  constexpr std::array<uint32_t, 3> words = {
+      0x39600005,  // addi r11,r0,5
+      0x386B0001,  // addi r3,r11,1
+      0x4E800020,  // blr
+  };
+
+  std::array<rex::codegen::ppc::Instruction, words.size()> instructions{};
+  std::vector<rex::codegen::ppc::Instruction*> decoded;
+  decoded.reserve(words.size());
+  for (size_t i = 0; i < words.size(); ++i) {
+    instructions[i].address = base + static_cast<uint32_t>(i * 4);
+    instructions[i].code = words[i];
+    decoded.push_back(&instructions[i]);
+  }
+
+  using rex::codegen::FunctionAuthority;
+  using rex::codegen::FunctionNode;
+  constexpr uint32_t size = static_cast<uint32_t>(words.size() * 4);
+  FunctionNode function(base, size, FunctionAuthority::DISCOVERED);
+  function.discover({{base, size}}, std::move(decoded), {});
+  function.seal();
+
+  rex::codegen::RecompilerConfig config;
+  config.nonArgumentRegistersAsLocalVariables = true;
+  const auto local_plan = rex::codegen::BuildResumableLocalGprCheckpointPlan(function, config);
+  REQUIRE(local_plan.has_value());
+  REQUIRE(local_plan->size() == words.size());
+  CHECK((*local_plan)[1].live_gprs.test(11));
+  CHECK((*local_plan)[1].local_gprs.test(11));
+  CHECK((*local_plan)[1].local_gprs == (*local_plan)[1].live_gprs);
+
+  config.nonArgumentRegistersAsLocalVariables = false;
+  CHECK_FALSE(
+      rex::codegen::BuildResumableLocalGprCheckpointPlan(function, config).has_value());
+}
