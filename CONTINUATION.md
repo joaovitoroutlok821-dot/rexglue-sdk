@@ -975,3 +975,16 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - Importante: o conjunto de locais é acumulado durante a emissão, e as declarações são colocadas antes do corpo final. Isso confirma como referenciar os locais, mas ainda não prova que um checkpoint arbitrário possa interromper e retomar a função C++ com segurança. Também não significa que todos os GPRs vivos estejam localizados: o adaptador terá de rejeitar fronteiras em que um GPR vivo esteja em `ctx.rN` ou fora das regras suportadas.
 - Próximo passo técnico: criar um teste de emissão opt-in que injete/registre, em uma fronteira pré-instrução, somente os GPRs vivos cujo accessor foi localizado, e rejeite explicitamente qualquer GPR vivo não-local. Validar também a retomada por PC em fixture gerada, sem alterar o runtime normal.
 - Nenhuma mudança foi feita no runtime de produção ou no APK funcional do RECVX. Nenhum novo resultado de CI foi inferido nesta investigação.
+
+
+### Validação de cobertura GPR local nos checkpoints — 2026-11-14
+
+- A partir do mapeamento confirmado em `BuilderContext::r(index)`, foi acrescentado `BuildResumableLocalGprCheckpointPlan(function, config)` em `include/rex/codegen/resumable_checkpoint_plan.h`.
+- O novo planejamento calcula os GPRs vivos por fronteira e, separadamente, os GPRs que a configuração realmente localiza: r0/r2/r11/r12 com `nonArgumentRegistersAsLocalVariables`; r14–r31 com `nonVolatileRegistersAsLocalVariables`, somente quando a função não compartilha registradores.
+- A rotina rejeita o plano inteiro se qualquer GPR vivo não estiver representado por uma variável local. Isso evita tratar `ctx.rN` como se fosse uma variável local capturável.
+- Adicionado teste em `tests/unit/codegen/resumable_checkpoint_plan_test.cpp`: uma função sintética define e consome r11; com a configuração de localização de não-argumentos o checkpoint reconhece r11 como vivo e local. Desligando essa configuração, a construção do plano local é rejeitada.
+- Commits de código/teste: `e6f51337643111647fafb0048c99edbece1407e3` e `6c88e201cf38102502aeb2e54fd131f6e20b2f6e`.
+- O workflow Guest Frame já monitora ambos os caminhos (`resumable_checkpoint_plan.h` e `resumable_checkpoint_plan_test.cpp`); portanto, a alteração aciona a validação dedicada.
+- CI e clang-format para o commit de teste ainda precisam ser conferidos. Não declarar aprovação antes dos workflows terminarem.
+- Limite: o novo plano valida apenas a cobertura GPR→local segundo as mesmas regras do accessor do emissor. Ainda não injeta hooks automaticamente, não serializa variáveis locais do AOT, não cria dispatch por PC e não demonstra suspensão/retomada segura. FPR, VMX, CR, XER, LR, CTR, memória guest, pilhas e threads permanecem fora deste teste.
+- Runtime normal e APK funcional do RECVX permanecem intocados.
