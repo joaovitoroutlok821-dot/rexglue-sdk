@@ -954,3 +954,12 @@ O último problema conhecido de CI foi formatação em `surface_android.cpp), co
 - CI: a consulta de status combinado ao commit `bc3002bcdb0c0bd8ccf8b47d22c104d4f3979883` retornou lista vazia de statuses; isso não equivale a aprovação. O workflow Guest Frame observa o teste alterado, mas a execução precisa ser verificada na interface Actions.
 - Próxima ação segura: localizar a implementação real de `FunctionNode::emitCpp` e o código que cria os nomes/expressões dos registradores PPC localizados. Seguir os includes e fontes listados no CMake, e então adicionar instrumentação de teste opt-in que exponha a associação (PPC GPR index, nome/tipo da variável gerada, escopo e PC válido). Não gerar captura de estado até essa associação ser verificável.
 - Nenhuma alteração foi feita no runtime normal ou no APK funcional do RECVX.
+
+### Confirmação da interface de emissão AOT — 2026-11-14
+
+- Reaberto `include/rex/codegen/function_node.h` na branch de trabalho. Confirma que `FunctionNode::emitCpp(const EmitContext& ctx) const` é o ponto público de emissão C++ após `seal()`.
+- `FunctionNode` expõe instruções, blocos, labels, chamadas, jump tables e metadados de exceção; não expõe um mapa de variáveis locais de registradores PPC.
+- `EmitContext` está declarado em `include/rex/codegen/function_types.h` e contém BinaryView, RecompilerConfig, FunctionGraph, entryPoint, resolver e conjunto opcional de funções referenciadas. Não contém tabela GPR→expressão C++.
+- Buscas do símbolo `FunctionNode::emitCpp` e de `REX_FUNC` não retornaram resultados indexados. Os caminhos presumidos `src/rex/codegen/function_node.cpp/.cc` e `include/rex/codegen/builders/builder_context.h` não existem nessa branch; não presumir esses caminhos.
+- Próxima inspeção deve partir do arquivo de build raiz e dos diretórios reais de fontes para localizar a definição de `FunctionNode::emitCpp` e os helpers de emissão/instruções PPC. Depois, documentar a expressão exata para GPR localizado e seu escopo de validade antes de implementar qualquer ponte de captura.
+- Nenhuma mudança de código/runtime foi feita nesta etapa; não há nova alegação de CI verde.
