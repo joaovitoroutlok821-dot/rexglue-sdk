@@ -6,9 +6,11 @@
  */
 #pragma once
 
+#include <bitset>
 #include <optional>
 #include <vector>
 
+#include <rex/codegen/config.h>
 #include <rex/codegen/resumable_function_liveness.h>
 
 namespace rex::codegen {
@@ -18,6 +20,8 @@ struct ResumableGprCheckpointPlan {
   uint32_t resume_pc = 0;
   /// GPR values required at this boundary by the conservative analysis.
   std::bitset<32> live_gprs;
+  /// Subset of live GPRs represented by AOT C++ locals under the chosen config.
+  std::bitset<32> local_gprs;
 };
 
 /// Build boundary metadata for a sealed FunctionNode supported by the narrow
@@ -33,7 +37,36 @@ inline std::optional<std::vector<ResumableGprCheckpointPlan>> BuildResumableGprC
   std::vector<ResumableGprCheckpointPlan> plan;
   plan.reserve(liveness->size());
   for (const auto& boundary : *liveness) {
-    plan.push_back({boundary.address, boundary.live_in});
+    plan.push_back({boundary.address, boundary.live_in, {}});
+  }
+  return plan;
+}
+
+/// Build checkpoints only when every live GPR is backed by a localized C++ local.
+/// This proves the register-expression mapping, not safe suspension/resumption.
+inline std::optional<std::vector<ResumableGprCheckpointPlan>>
+BuildResumableLocalGprCheckpointPlan(const FunctionNode& function,
+                                    const RecompilerConfig& config) {
+  auto plan = BuildResumableGprCheckpointPlan(function);
+  if (!plan)
+    return std::nullopt;
+
+  std::bitset<32> localizable;
+  if (config.nonArgumentRegistersAsLocalVariables) {
+    localizable.set(0);
+    localizable.set(2);
+    localizable.set(11);
+    localizable.set(12);
+  }
+  if (config.nonVolatileRegistersAsLocalVariables && !function.sharesRegisters()) {
+    for (size_t index = 14; index < 32; ++index)
+      localizable.set(index);
+  }
+
+  for (auto& boundary : *plan) {
+    boundary.local_gprs = boundary.live_gprs & localizable;
+    if (boundary.local_gprs != boundary.live_gprs)
+      return std::nullopt;
   }
   return plan;
 }
